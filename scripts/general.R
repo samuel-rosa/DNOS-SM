@@ -1,10 +1,11 @@
 # DESCRIPTION ##################################################################
-# General configurations and analysis to be used with other scripts. Here we 
-# have some exploratory data analysis, the preparation of figures of the study
-# area, etc.
+# General configuration and pre-processing. We have some exploratory data
+# analysis, the preparation of figures of the study area, etc.
+
 # SETTINGS #####################################################################
 rm(list = ls())
 gc()
+# Load packages
 require(sp)
 require(rgdal)
 require(maptools)
@@ -20,12 +21,14 @@ library(lattice)
 library(latticeExtra)
 require(grid)
 library(maptools)
-library(raster)
 library(rgeos)
+require(pedometrics)
 load("sm-dnos-general.RData")
 ls()
+
 # SET DATA DIRECTORIES AND DEFINITIONS #########################################
 
+# Directories ------------------------------------------------------------------
 # exploratory data analysis
 explora.dir <- path.expand("~/PROJECTS/DNOS-SM/exploratory/")
 # covar-validation directory
@@ -53,27 +56,29 @@ update_covars_dir <- path.expand("~/PROJECTS/DNOS-SM/update-covars/")
 # Point pattern analysys
 ppp_dir <- path.expand("~/PROJECTS/DNOS-SM/point-pattern-analysis/")
 
-# Prediction grid cell size
-# cellsize <- 15
+# Cell size of the prediction grid ---------------------------------------------
+# We choose the cellsize to be 5 metres because this is the smallest
+# cellsize among the environmental covariates (RapidEye images). This way
+# we do not lose any information due to the aggregation of spatial data.
 cellsize <- 5
 
 # GRASS GIS addons
-Sys.getenv("GRASS_ADDON_PATH")
-Sys.setenv("GRASS_ADDON_PATH" = path.expand("~/softwares/GRASS_ADDON_PATH"))
-grass.addons <- path.expand("~/softwares/GRASS_ADDON_PATH/")
-system(paste("g.extension r.gauss")) # install
-system(paste(grass.addons, "r.gauss -help", sep = ""))
+# Sys.getenv("GRASS_ADDON_PATH")
+# Sys.setenv("GRASS_ADDON_PATH" = path.expand("~/softwares/GRASS_ADDON_PATH"))
+# grass.addons <- path.expand("~/softwares/GRASS_ADDON_PATH/")
+# system(paste("g.extension r.gauss")) # install
+# system(paste(grass.addons, "r.gauss -help", sep = ""))
 
-# GRASS GIS DBase
+# GRASS GIS DBase --------------------------------------------------------------
 GRASSgisDbase <- path.expand("~/GRASSgisDbase")
 initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = GRASSgisDbase, 
-          location = "dnos-sm-rs",
-          mapset = "predictions", pid = Sys.getpid(), override = TRUE)
+          location = "dnos-sm-rs", mapset = "predictions", pid = Sys.getpid(),
+          override = TRUE)
 writeRAST6(dnos.raster, "dnos.raster", overwrite = TRUE)
 system("g.region rast=dnos.raster")
 gmeta6()
 
-# Coordinate reference systems
+# Coordinate reference systems -------------------------------------------------
 sirgas2000 <- CRS("+init=epsg:4674")
 sirgas2000utm22s <- CRS("+init=epsg:31982")
 wgs1984utm22s <- CRS("+init=epsg:32722")
@@ -81,6 +86,74 @@ wgs1984 <- CRS("+init=epsg:4326")
 ca_utm22s <- CRS("+init=epsg:22522")
 
 # LOAD AND PROCESS DATA ########################################################
+
+# Laboratory data ==============================================================
+labData <- read.table("data/labData.csv", dec = ".", head = TRUE, sep = ";",
+                       stringsAsFactors = FALSE, na.strings = "na")
+head(labData)
+coordinates(labData) <- ~ longitude + latitude
+proj4string(labData) <- sirgas2000
+labData <- spTransform(labData, wgs1984utm22s)
+str(labData)
+plot(labData)
+
+# Exploratory data analysis
+# Dependent variables should have a Gaussian distribution - this is one of the
+# requirements of linear models. It is expected that, if the dependent variable
+# has a Gaussian distribution, then the residuals also will have a Gaussian
+# distribution. Transformations are performed using the power family of
+# Box-Cox transformations. Only non-negative lambda values are used. This is
+# a requirement for performing the back-transformation using Monte Carlo 
+# simulations. When lambda is negative, the integral over the entire space of
+# the probability distribution can be infinite, and thus the mean and variance 
+# cannot be computed. When a negative lambda is estimated, it is replaced by
+# zero (0).
+bc_lambda <- list(clay = NA, carbon = NA, ecec = NA)
+
+# Laboratory data - clay content ----------------------------------------------
+var <- labData$CLAY
+# histogram with original variable
+xlab <- expression(paste('CLAY (g ',kg^-1,')', sep = ''))
+tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
+              scales = list(cex = c(1, 1)))
+dev.off()
+pdf(file = paste(explora.dir, "clay-dist-original.pdf", sep = ""),
+    width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(fontsize = list(text = 7, points = 5),
+                plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
+                layout.widths = list(left.padding = 0, right.padding = 0), 
+                layout.heights = list(top.padding = 0, bottom.padding = 0))
+print(tmp)
+dev.off()
+rm(tmp, xlab)
+gc()
+# histogram with transformed variable
+xlab  <-  expression(paste('Box-Cox CLAY (g ',kg^-1,')', sep = ''))
+tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
+              scales = list(cex = c(1, 1)))
+dev.off()
+pdf(file = paste(explora.dir, "clay-dist-trans.pdf", sep = ""),
+    width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(fontsize = list(text = 7, points = 5),
+                plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
+                layout.widths = list(left.padding = 0, right.padding = 0), 
+                layout.heights = list(top.padding = 0, bottom.padding = 0))
+print(tmp)
+dev.off()
+rm(tmp, var, xlab)
+gc()
+# transformation
+bc_lambda$clay <- lambda
+labData$CLAY_BC <- bcPower(labData$CLAY, lambda)
+dev.off()
+pdf(file = paste(explora.dir, "clay_bc.pdf", sep = ""))
+xyplot(CLAY_BC ~ CLAY, data = labData@data, xlab = "original scale",
+       ylab = "Box-Cox transformed", main = "Clay content")
+dev.off()
+rm(var, par, lambda, leg)
+gc()
+
+
 
 # Validation Data ==============================================================
 val_data <- read.table(paste(point.dir, "validation-data.csv", sep = ""),
@@ -135,7 +208,6 @@ plot(cal_data)
 
 bc_lambda <- list(clay = NA, carbon = NA, ecec = NA)
 
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/plotHD.R")
 
 # Calibration Data - clay content ----------------------------------------------
 var <- cal_data$clay
