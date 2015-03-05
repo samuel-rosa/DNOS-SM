@@ -1,51 +1,7 @@
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//               UNIVERSIDADE FEDERAL RURAL DO RIO DE JANEIRO                 //
-//                        INSTITUTO DE AGRONOMIA                              //
-//          CURSO DE PÓS-GRADUAÇÃO EM AGRONOMIA-CIÊNCIA DO SOLO               //
-//                                                                            //
-//            CONTRIBUIÇÃO À CONSTRUÇÃO DE MODELOS DE PREDIÇÃO                //
-//                         DE PROPRIEDADES DO SOLO                            //
-//                                                                            //
-//                           PROJETO DE PESQUISA                              //
-//                                                                            //
-//                          ALESSANDRO SAMUEL-ROSA                            //
-//                                                                            //
-//                        Seropédica, março de 2012.                          //
-//                                                                            //
-//----------------------------------------------------------------------------//
-//                                                                            //
-//Descrição:                                                                  //
-//Projeto de pesquisa apresentada ao Curso de Pós-Graduação                   //
-//em Agronomia-Ciência do Solo, da Universidade Federal                       //
-//Rural do Rio de Janeiro (UFRRJ), Rio de Janeiro, como                       //
-//requisito parcial para a obtenção do grau de Doutor em                      //
-//Agronomia-Ciência do Solo.                                                  //
-//                                                                            //
-//----------------------------------------------------------------------------//
-//                                                                            //
-//Comitê de orientação:                                                       //
-//Dra. Lúcia Helena Cunha dos Anjos - Orientador                              //
-//Dr. Gustavo de Matos Vasques (Embrapa) - co-orientador                      //
-//Dr. Gerard Heuvelink (ISRIC) - co-orientador                                //
-//                                                                            //
-//----------------------------------------------------------------------------//
-//                                                                            //
-//                           Script de trabalho:                              //
-//                      Configuração geral dos dados                          //
-//                                                                            //
-//----------------------------------------------------------------------------//
-//                                                                            //
-//Descrição:                                                                  //
-//                                                                            //
-//                                                                            //
-//----------------------------------------------------------------------------//
-//                                                                            //
-//e-mail: alessandrosamuel@yahoo.com.br                                       //
-//homepage: soil-scientist.net                                                //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
-
+# DESCRIPTION ##################################################################
+# General configurations and analysis to be used with other scripts. Here we 
+# have some exploratory data analysis, the preparation of figures of the study
+# area, etc.
 # SETTINGS #####################################################################
 rm(list = ls())
 gc()
