@@ -1,0 +1,35 @@
+Item;Unit;Description
+observationid;Dimensionless;Unique observation ID. As specified in the data registry service.
+sampleid;Dimensionless;Producer's ID. Site ID and sequence number.
+longitude;Degrees;"Longitude. proj4.defs(""EPSG:4326"",""+proj=longlat +datum=WGS84 +no_defs"")."
+latitude;Degrees;"Latitude. proj4.defs(""EPSG:4326"",""+proj=longlat +datum=WGS84 +no_defs"")."
+SAND_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the sand content.
+SAND_SD;Grams per kilogram;Standard deviation of the sand content.
+SAND;Grams per kilogram;Sand fraction (0.053 to 2 mm) determined by wet sieving after chemical dispersion with NaOH 1 mol/L and mechanical dispersion with nylon spheres + 4-hours horizontal shaking.
+CLAY_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the clay content.
+CLAY_SD;Grams per kilogram;Standard deviation of the clay content.
+CLAY;Grams per kilogram;Clay fraction (< 0.002 mm) determined by the pipette method after chemical dispersion with NaOH 1 mol/L and mechanical dispersion with nylon spheres + 4-hours horizontal shaking.
+CALC_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the exchangeable calcium content.
+CALC_SD;Millimole per kilogram;Standard deviation of the exchangeable calcium content.
+CALC;Millimole per kilogram;Exchangeable calcium quantified by means of atomic absorption spectroscopy after extraction with KCl 1 mol/L.
+MAGN_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the exchangeable magnesium content.
+MAGN_SD;Millimole per kilogram;Standard deviation of the exchangeable magnesium content.
+MAGN;Millimole per kilogram;Exchangeable magnesium quantified by means of atomic absorption spectroscopy after extraction with KCl 1 mol/L.
+EXAC_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the exchangeable acidity content.
+EXAC_SD;Millimole per kilogram;Standard deviation of the exchangeable acidity content.
+EXAC;Millimole per kilogram;Exchangeable acidity (or aluminium) quantified by titration with NaOH 0.025 mol/L after extraction with KCl 1 mol/L.
+POTA_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the exchangeable potassium content.
+POTA_SD;Millimole per kilogram;Standard deviation of the exchangeable potassium content.
+POTA;Millimole per kilogram;Exchangeable potassium quantified by means of flame atomic emission spectrometry after extraction with 0.05 mol/L HCl solution + 0.025 mol/L H2SO4 solution (Mehlich-I solution).
+SODI_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the exchangeable sodium content.
+SODI_SD;Millimole per kilogram;Standard deviation of the exchangeable sodium content.
+SODI;Millimole per kilogram;Exchangeable sodium quantified by means of flame atomic emission spectrometry after extraction with 0.05 mol/L HCl solution + 0.025 mol/L H2SO4 solution (Mehlich-I solution).
+ORCA_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the organic carbon content.
+ORCA_SD;Grams per kilogram;Standard deviation of the organic carbon content.
+ORCA;Grams per kilogram;Organic carbon determined by means of wet digestion using 0.067 mol/L sulfocromic solution [K2Cr2O7 + H2SO4] in a digestion block at 150 ºC during 30 min. The solution was titrated using 0.1 mol/L ammonium ferrous sulphate [Fe(NH4)2(SO4)2.6H2O] and results were multiplied by 1.11 to correct to the standard method (dry combustion).
+ECEC_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation of the effective cation exchange capacity.
+ECEC_SD;Millimole per kilogram;Standard deviation of the effective cation exchange capacity.
+ECEC;Millimole per kilogram;Effective cation exchange capacity calculated as the sum of the exchangeable bases (calcium, magnesium, potassium, and sodium) plus the exchangeable acidity.
+BUDE_N;Dimensionless;Number of laboratory replicates used to calculate the mean and sample standard deviation bulk density.
+BUDE_SD;Mega-grams per cubic meter;Standard deviation of the bulk density.
+BUDE;Mega-grams per cubic meter;Bulk density determined using the method of the volumetric ring.

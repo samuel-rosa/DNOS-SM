@@ -1,0 +1,25 @@
+Item;Unit;Description
+observationid;Dimensionless;Unique observation ID. As specified in the data registry service.
+sampleid;Dimensionless;Producer's ID. Site ID and sequence number.
+longitude;Degrees;"Longitude. proj4.defs(""EPSG:4326"",""+proj=longlat +datum=WGS84 +no_defs"")."
+latitude;Degrees;"Latitude. proj4.defs(""EPSG:4326"",""+proj=longlat +datum=WGS84 +no_defs"")."
+locationError;Meters;Error radius.
+TimeSpan.begin;Dimensionless;Begin of the measurement period.
+TimeSpan.end;Dimensionless;End of the measurement period.
+altitude;Meters;Height above the sea level.
+altitudeMode;Dimensionless;KML schema altitude mode.
+sampleArea;Square meters;Spatial support.
+sampleThickness;Meters;Thickness of horizons or vertical support.
+LAND;Dimensionless;Land use.
+PARENT;Dimensionless;Parent material.
+GEO;Dimensionless;Geological formation.
+LITHO;Dimensionless;Lithology.
+TAXON;Dimensionless;Soil taxon according to the Brazilian System of Soil Classification, version 2013.
+SLOPE;Percentage;Slope.
+DRAIN;Dimensionless;Drainage class.
+FRAG;Dimensionless;Presence of coarse fragments. 1 = TRUE, 0 = FALSE.
+ROCK;Dimensionless;Presence of rock outcrops. 1 = TRUE, 0 = FALSE.
+GRAVEL;Percentage;Gravel.
+CANOPY;Dimensionless;Canopy.
+DATE;Dimensionless;Date of observation.
+TEAM;Dimensionless;Researchers that carried out the field campaign.
