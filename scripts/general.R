@@ -181,57 +181,6 @@ cal_data$density_se.fit[match(newdata$sampleid, cal_data$sampleid)] <- newdata$f
 cal_data$density_se.fit
 rm(density, newdata)
 
-# Calibration Data - sample rasters --------------------------------------------
-# settings
-initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = GRASSgisDbase,
-          location = "dnos-sm-rs", mapset = "predictions",
-          pid = Sys.getpid(), override = TRUE)
-system("g.region rast=dnos.raster")
-system("g.remove MASK")
-system("r.mask dnos.raster")
-# import calibration points into GRASS
-system("g.remove vect=calibration")
-pts <- data.frame(coordinates(cal_data), cal_data$sampleid)
-coordinates(pts) <- ~ longitude + latitude
-proj4string(pts) <- wgs1984utm22s
-colnames(pts@data) <- "sampleid"
-writeVECT6(pts, "calibration", v.in.ogr_flags = "overwrite")
-rm(pts)
-# setup database of calibration points
-system("v.info -c calibration")
-cols_int <- paste(soil1, land1, geo1, soil2, land2, geo2, sep = " + ")
-cols_int <- str_replace_all(cols_int, "[+]", "INT,")
-cols_int <- paste(cols_int, " INT", sep = "")
-cols_double <- paste(sat1, dem1,  sat2, dem2, sep = " + ")
-cols_double <- str_replace_all(cols_double, "[+]", " DOUBLE PRECISION,")
-cols_double <- paste(cols_double, " DOUBLE PRECISION", sep = "")
-cols <- paste(cols_int, cols_double, sep = ", ")
-cmd <- paste("v.db.addcol map=calibration columns='", cols, "'", sep = "")
-system(cmd)
-system("v.info -c calibration")
-rm(cols_int, cols_double, cols)
-# sample rasters
-# do it in GRASS because loading all rasters in R consumes all the memory
-maps <- paste(soil1, land1, geo1, soil2, land2, geo2, sat1, dem1, sat2, dem2, sep = " + ")
-maps <- str_replace_all(maps, "[ ]", "")
-maps <- c(unlist(str_split(maps, "[+]")))
-column <- maps
-cmd <- paste("v.what.rast vect=calibration raster=", maps, " column=", column, sep = "")
-lapply(cmd, system)
-rm(maps, column)
-# read calibration data
-tmp <- readVECT6(vname = "calibration")
-str(tmp)
-tmp@data <- tmp@data[, - 1]
-tmp$sampleid <- as.character(tmp$sampleid)
-str(tmp)
-which(c(cal_data$sampleid == tmp$sampleid) == FALSE)
-proj4string(tmp) <- wgs1984utm22s
-tmp@data <- join(cal_data@data, tmp@data, by = "sampleid")
-cal_data <- tmp
-str(cal_data)
-rm(tmp)
-
 # Extent =======================================================================
 
 # extent of the region in which there is data available

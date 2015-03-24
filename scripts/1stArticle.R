@@ -163,6 +163,7 @@ plot(cal_data)
 bc_lambda <- list(CLAY = NA, ORCA = NA, ECEC = NA)
 
 source("/home/lgcs-mds/alessandro/pedometrics/R/plotHD.R")
+
 # SOIL DATA - CLAY -------------------------------------------------------------
 vari <- cal_data$CLAY
 # Histogram with original variable
@@ -307,6 +308,7 @@ pdf_file <- paste(firstArticle_dir, "FIG2", letters[1:6], sep = "")
 pdf2png(pdf_file)
 
 # SETUP COVARIATE DATABASE #####################################################
+
 # database 1
 soil1 <- c("SOIL_100b", "SOIL_100c",
            "SOIL_100d", "SOIL_100e", "SOIL_100f")
@@ -327,6 +329,7 @@ dem1 <- c("ELEV_90", "SLP_90_3", "SLP_90_7", "SLP_90_15", "SLP_90_31",
           "SPI_90_7", "SPI_90_15", "SPI_90_31", "SPI_90_63", "SPI_90_127",
           "SPI_90_255")
 dem1 <- paste(dem1, collapse = " + ")
+
 # database 2
 soil2 <- c("SOIL_25a", "SOIL_25b", "SOIL_25c", "SOIL_25d", 
            "SOIL_25h", "SOIL_25i", "SOIL_25j")
@@ -347,13 +350,73 @@ dem2 <- c("ELEV_10", "SLP_10_3", "SLP_10_7", "SLP_10_15", "SLP_10_31",
           "SPI_10_7", "SPI_10_15", "SPI_10_31", "SPI_10_63", "SPI_10_127", 
           "SPI_10_255")
 dem2 <- paste(dem2, collapse = " + ")
+
+# Calibration Data - sample rasters --------------------------------------------
+system("g.region rast=dnos.raster")
+system("g.remove MASK")
+system("r.mask dnos.raster")
+
+# import calibration points into GRASS
+system("g.remove vect=calibration")
+pts <- data.frame(coordinates(cal_data), cal_data$sampleid)
+coordinates(pts) <- ~ longitude + latitude
+proj4string(pts) <- wgs1984utm22s
+colnames(pts@data) <- "sampleid"
+writeVECT6(pts, "calibration", v.in.ogr_flags = "overwrite")
+rm(pts)
+
+# setup database of calibration points
+system("v.info -c calibration")
+cols_int <- paste(soil1, land1, geo1, soil2, land2, geo2, sep = " + ")
+cols_int <- str_replace_all(cols_int, "[+]", "INT,")
+cols_int <- paste(cols_int, " INT", sep = "")
+cols_double <- paste(sat1, dem1,  sat2, dem2, sep = " + ")
+cols_double <- str_replace_all(cols_double, "[+]", " DOUBLE PRECISION,")
+cols_double <- paste(cols_double, " DOUBLE PRECISION", sep = "")
+cols <- paste(cols_int, cols_double, sep = ", ")
+cmd <- paste("v.db.addcol map=calibration columns='", cols, "'", sep = "")
+system(cmd)
+system("v.info -c calibration")
+rm(cols_int, cols_double, cols)
+
+# sample rasters
+# We do it in GRASS because loading all rasters in R consumes all the memory
+maps <- paste(soil1, land1, geo1, soil2, land2, geo2, sat1, dem1, sat2, dem2,
+              sep = " + ")
+maps <- str_replace_all(maps, "[ ]", "")
+maps <- c(unlist(str_split(maps, "[+]")))
+column <- maps
+cmd <- paste("v.what.rast vect=calibration raster=", maps, " column=", 
+             column, sep = "")
+lapply(cmd, system)
+rm(maps, column)
+
+# read calibration data
+tmp <- readVECT6(vname = "calibration")
+str(tmp)
+tmp@data <- tmp@data[, - 1]
+tmp$sampleid <- as.character(tmp$sampleid)
+str(tmp)
+which(c(cal_data$sampleid == tmp$sampleid) == FALSE)
+proj4string(tmp) <- wgs1984utm22s
+tmp@data <- join(cal_data@data, tmp@data, by = "sampleid")
+cal_data <- tmp
+str(cal_data)
+rm(tmp)
+
 # SETUP CANDIDATE MODELS #######################################################
-# combs
+
+# First, we create an object called 'combs' with all possible combinations of
+# environmental covariates. The object is a list with two major items:
+# - 'main' has the identification of the environmental covariates;
+# - 'num' is used for plotting purposes.
+# The object also has to items used for a sensitivity analysis ('base' and 
+# 'fine'), This analysis shows the relative effect of excluding one 
+# environmental covariate at a time.
 combs <- list()
 combs$main <- expand.grid(c("soil1", "soil2"), c("land1", "land2"),
                           c("geo1", "geo2"), c("sat1", "sat2"),
                           c("dem1", "dem2"), stringsAsFactors = FALSE)
-
 combs$main <- split(combs$main, seq(1, nrow(combs$main), 1))
 combs$num <- expand.grid(c(1, 2), c(1, 2), c(1, 2), c(1, 2), c(1, 2))
 colnames(combs$num) <- c("soil", "land", "geo", "sat", "dem")
@@ -365,67 +428,81 @@ combs$fine <- list()
 for (i in 1:length(combs$main[[32]])) {
   combs$fine[[i]] <- combs$main[[32]][-i]
 }
-# predictors
+
+# Now we create a list with the predictor variables derived from the 
+# environmental covariates. 
 preds <- list()
 preds$main <- lapply(combs$main, function(X){parse(text = X)})
 preds$main <- lapply(preds$main, function(X){lapply(X, eval)})
-preds$main <- lapply(preds$main, function(X) {
-  res = paste(unlist(X), collapse = " + ")
-  return(res)
-  })
+preds$main <- lapply(preds$main, function(X){
+  paste(unlist(X), collapse = " + ")})
 preds$base <- lapply(combs$base, function(X){parse(text = X)})
 preds$base <- lapply(preds$base, function(X){lapply(X, eval)})
-preds$base <- lapply(preds$base, function(X) {
-  res = paste(unlist(X), collapse = " + ")
-  return(res)
-})
+preds$base <- lapply(preds$base, function(X){
+  paste(unlist(X), collapse = " + ")})
 preds$fine <- lapply(combs$fine, function(X){parse(text = X)})
 preds$fine <- lapply(preds$fine, function(X){lapply(X, eval)})
-preds$fine <- lapply(preds$fine, function(X) {
-  res = paste(unlist(X), collapse = " + ")
-  return(res)
-})
-# formulas
+preds$fine <- lapply(preds$fine, function(X){
+  paste(unlist(X), collapse = " + ")})
+
+# Now we use the lists created above to define a whole set of formulas that 
+# define the candidate models for each soil property. This is done for the 
+# sensitivity analysis too.
 forms <- list()
-forms$soil_attrs <- c("clay_bc", "carbon_bc", "ecec_bc")
-forms$main <- lapply(forms$soil_attrs, function(X){paste(X, " ~ ", preds$main)})
-forms$clay <-
-  lapply(unlist(forms$main[which(forms$soil_attrs == "clay_bc")]), as.formula)
-forms$soc <- 
-  lapply(unlist(forms$main[which(forms$soil_attrs == "carbon_bc")]), as.formula)
-forms$ecec <- 
-  lapply(unlist(forms$main[which(forms$soil_attrs == "ecec_bc")]), as.formula)
-forms$base <- lapply(forms$soil_attrs, function(X){paste(X, " ~ ", preds$base)})
-forms$fine <- lapply(forms$soil_attrs, function(X){paste(X, " ~ ", preds$fine)})
-forms$clay_base <-
-  lapply(unlist(forms$base[which(forms$soil_attrs == "clay_bc")]), as.formula)
-forms$clay_fine <-
-  lapply(unlist(forms$fine[which(forms$soil_attrs == "clay_bc")]), as.formula)
-forms$soc_base <-
-  lapply(unlist(forms$base[which(forms$soil_attrs == "carbon_bc")]), as.formula)
-forms$soc_fine <-
-  lapply(unlist(forms$fine[which(forms$soil_attrs == "carbon_bc")]), as.formula)
-forms$ecec_base <-
-  lapply(unlist(forms$base[which(forms$soil_attrs == "ecec_bc")]), as.formula)
-forms$ecec_fine <-
-  lapply(unlist(forms$fine[which(forms$soil_attrs == "ecec_bc")]), as.formula)
+forms$main <- lapply("y", function(X){paste(X, " ~ ", preds$main)})
+forms$main <- lapply(unlist(forms$main), as.formula)
+forms$base <- lapply("y", function(X){paste(X, " ~ ", preds$base)})
+forms$base <- lapply(unlist(forms$base), as.formula)
+forms$fine <- lapply("y", function(X){paste(X, " ~ ", preds$fine)})
+forms$fine <- lapply(unlist(forms$fine), as.formula)
+
+# forms$soil_attrs <- c("CLAY_BC", "ORCA_BC", "ECEC_BC")
+# forms$main <- lapply(forms$soil_attrs, function(X){paste(X, " ~ ", preds$main)})
+# forms$CLAY <- 
+#   lapply(unlist(forms$main[which(forms$soil_attrs == "CLAY_BC")]), as.formula)
+# forms$ORCA <- 
+#   lapply(unlist(forms$main[which(forms$soil_attrs == "ORCA_BC")]), as.formula)
+# forms$ECEC <- 
+#   lapply(unlist(forms$main[which(forms$soil_attrs == "ECEC_BC")]), as.formula)
+# forms$base <- lapply(forms$soil_attrs, function(X){paste(X, " ~ ", preds$base)})
+# forms$fine <- lapply(forms$soil_attrs, function(X){paste(X, " ~ ", preds$fine)})
+# forms$CLAY_base <-
+#   lapply(unlist(forms$base[which(forms$soil_attrs == "CLAY_BC")]), as.formula)
+# forms$CLAY_fine <-
+#   lapply(unlist(forms$fine[which(forms$soil_attrs == "CLAY_BC")]), as.formula)
+# forms$ORCA_base <-
+#   lapply(unlist(forms$base[which(forms$soil_attrs == "ORCA_BC")]), as.formula)
+# forms$ORCA_fine <-
+#   lapply(unlist(forms$fine[which(forms$soil_attrs == "ORCA_BC")]), as.formula)
+# forms$ECEC_base <-
+#   lapply(unlist(forms$base[which(forms$soil_attrs == "ECEC_BC")]), as.formula)
+# forms$ECEC_fine <-
+#   lapply(unlist(forms$fine[which(forms$soil_attrs == "ECEC_BC")]), as.formula)
 
 # LINEAR MODEL FITTING #########################################################
+# Here we fit linear models using ordinary least squares to model the 
+# deterministic component.
+
 # CLAY -------------------------------------------------------------------------
+formula <- lapply(forms$main, update, CLAY_BC ~ .)
+data <- cal_data@data
+
 # build model series using several strategies
-clay_full     <- buildMS(forms$clay, data)
-clay_vif      <- buildMS(forms$clay, data, vif = TRUE)
-clay_both     <- buildMS(forms$clay, data, vif = TRUE, aic = TRUE)
-clay_forward  <- buildMS(forms$clay, data, vif = TRUE, aic = TRUE,
-                         aic.direction = "forward")
-clay_backward <- buildMS(forms$clay, data, vif = TRUE, aic = TRUE, 
+clay_full <- buildMS(formula, data)
+clay_vif <- buildMS(formula, data, vif = TRUE)
+clay_both <- buildMS(formula, data, vif = TRUE, aic = TRUE)
+clay_forward <- buildMS(formula, data, vif = TRUE, aic = TRUE,
+                        aic.direction = "forward")
+clay_backward <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
                          aic.direction = "backward")
+
 # get statistics of model series
 clay_full_stats     <- statsMS(clay_full, combs$num, "rmse")
 clay_vif_stats      <- statsMS(clay_vif, combs$num, "rmse")
 clay_both_stats     <- statsMS(clay_both, combs$num, "rmse")
 clay_forward_stats  <- statsMS(clay_forward, combs$num, "rmse")
 clay_backward_stats <- statsMS(clay_backward, combs$num, "rmse")
+
 # plot and save all model series
 grid <- c(2:6)
 line <- "ADJ_r2"
@@ -462,7 +539,7 @@ dev.off()
 # check the effect of the number of observations (200, 300)
 data <- cal_data@data
 data <- data[sample(c(1:350), size = 200), ]
-tmp <- buildMS(forms$clay, data)
+tmp <- buildMS(forms_clay, data)
 tmp <- statsMS(tmp, combs$num, "rmse")
 grid <- c(2:6)
 line <- "ADJ_r2"
@@ -518,21 +595,24 @@ plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
 dev.off()
 
 # CARBON -----------------------------------------------------------------------
+formula <- lapply(forms$main, update, ORCA_BC ~ .)
 data <- cal_data@data
+
 # fit using several strategies
-carbon_full     <- buildMS(forms$soc, data)
-carbon_vif      <- buildMS(forms$soc, data, vif = TRUE)
-carbon_both     <- buildMS(forms$soc, data, vif = TRUE, 
-                                    aic = TRUE, aic.direction = "both")
-carbon_forward  <- buildMS(forms$soc, data, vif = TRUE, 
-                                    aic = TRUE, aic.direction = "forward")
-carbon_backward <- buildMS(forms$soc, data, vif = TRUE, 
-                                    aic = TRUE, aic.direction = "backward")
+carbon_full <- buildMS(formula, data)
+carbon_vif <- buildMS(formula, data, vif = TRUE)
+carbon_both <- buildMS(formula, data, vif = TRUE, 
+                       aic = TRUE, aic.direction = "both")
+carbon_forward <- buildMS(formula, data, vif = TRUE, 
+                          aic = TRUE, aic.direction = "forward")
+carbon_backward <- buildMS(formula, data, vif = TRUE, 
+                           aic = TRUE, aic.direction = "backward")
+
 # get statistics of model series
-carbon_full_stats     <- statsMS(carbon_full, combs$num, "rmse")
-carbon_vif_stats      <- statsMS(carbon_vif, combs$num, "rmse")
-carbon_both_stats     <- statsMS(carbon_both, combs$num, "rmse")
-carbon_forward_stats  <- statsMS(carbon_forward, combs$num, "rmse")
+carbon_full_stats <- statsMS(carbon_full, combs$num, "rmse")
+carbon_vif_stats <- statsMS(carbon_vif, combs$num, "rmse")
+carbon_both_stats <- statsMS(carbon_both, combs$num, "rmse")
+carbon_forward_stats <- statsMS(carbon_forward, combs$num, "rmse")
 carbon_backward_stats <- statsMS(carbon_backward, combs$num, "rmse")
 
 # plot and save all model series
@@ -675,7 +755,7 @@ dev.off()
 # check the effect of the number of observations (200, 300)
 data <- cal_data@data
 data <- data[sample(c(1:350), size = 200), ]
-tmp <- buildMS(forms$clay, data)
+tmp <- buildMS(forms_clay, data)
 tmp <- statsMS(tmp, combs$num, "rmse")
 grid <- c(2:6)
 line <- "ADJ_r2"
