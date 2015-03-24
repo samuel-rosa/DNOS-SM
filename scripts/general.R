@@ -5,7 +5,6 @@
 # SETTINGS #####################################################################
 rm(list = ls())
 gc()
-# Load packages
 require(sp)
 require(rgdal)
 require(maptools)
@@ -74,7 +73,7 @@ dbGRASS <- path.expand("~/dbGRASS")
 initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS, 
           location = "dnos-sm-rs", mapset = "predictions", pid = Sys.getpid(),
           override = TRUE)
-writeRAST6(dnos.raster, "dnos.raster", overwrite = TRUE)
+#writeRAST6(dnos.raster, "dnos.raster", overwrite = TRUE)
 system("g.region rast=dnos.raster")
 gmeta6()
 
@@ -84,6 +83,16 @@ sirgas2000utm22s <- CRS("+init=epsg:31982")
 wgs1984utm22s <- CRS("+init=epsg:32722")
 wgs1984 <- CRS("+init=epsg:4326")
 ca_utm22s <- CRS("+init=epsg:22522")
+
+# SAVE DATA ####################################################################
+ls()
+save(bound_dir, ca_utm22s, cellsize, cov_valid_dir, dbGRASS, dem_dir, 
+     explora_dir, firstArticle_dir, geo_dir, hydro_dir, land_dir, point_dir,
+     ppa_dir, rdata_dir, resample_dir, sirgas2000, sirgas2000utm22s, 
+     soil_dir, wgs1984, wgs1984utm22s, 
+     file = paste(rdata_dir, "sm-dnos-general.RData", sep = ""))
+
+
 
 
 
