@@ -122,48 +122,6 @@ plot(labData)
 # zero (0).
 bc_lambda <- list(clay = NA, carbon = NA, ecec = NA)
 
-# Laboratory data - clay content -----------------------------------------------
-var <- labData$CLAY
-# histogram with original variable
-xlab <- expression(paste('CLAY (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
-dev.off()
-pdf(file = paste(explora_dir, "clay-dist-original.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
-print(tmp)
-dev.off()
-rm(tmp, xlab)
-gc()
-# histogram with transformed variable
-xlab  <-  expression(paste('Box-Cox CLAY (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
-dev.off()
-pdf(file = paste(explora_dir, "clay-dist-trans.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
-print(tmp)
-dev.off()
-rm(tmp, var, xlab)
-gc()
-# transformation
-bc_lambda$clay <- lambda
-labData$CLAY_BC <- bcPower(labData$CLAY, lambda)
-dev.off()
-pdf(file = paste(explora.dir, "clay_bc.pdf", sep = ""))
-xyplot(CLAY_BC ~ CLAY, data = labData@data, xlab = "original scale",
-       ylab = "Box-Cox transformed", main = "Clay content")
-dev.off()
-rm(var, par, lambda, leg)
-gc()
 
 
 
