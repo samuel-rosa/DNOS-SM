@@ -3,10 +3,10 @@
 # Samuel-Rosa, A.; Heuvelink, G. B. M.; Vasques, G. M. & Anjos, L. H. C. Do more
 # detailed environmental covariates deliver more accurate soil maps?. Geoderma,
 # v. 243-244, p. 214-227, 2015. doi:10.1016/j.geoderma.2014.12.017
+
 # SETTINGS #####################################################################
 rm(list = ls())
 gc()
-options(device = x11, stringsAsFactors = FALSE)
 library(rgdal)
 require(spgrass6)
 require(raster)
@@ -17,38 +17,37 @@ require(car)
 require(caret)
 require(MASS)
 library(lattice)
-require(xtable)
 library(latticeExtra)
 library(grid)
 library(gridExtra)
+require(xtable)
 library(Hmisc)
 library(plotKML)
 require(stringr)
 require(plyr)
 require(pbapply)
 library(mail)
-load("sm-dnos-general.RData")
-load("sm-dnos-phd-chap1.RData")
-load("sm-dnos-phd-chap1-final-models.RData")
+rdata_dir <- path.expand("~/Dropbox/dnos-sm-rs/rdata/")
+load(paste(rdata_dir, "sm-dnos-general.RData", sep = ""))
+#load("sm-dnos-phd-chap1.RData")
+#load("sm-dnos-phd-chap1-final-models.RData")
 data(R_pal)
-data <- cal_data@data
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/stepVIF.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/isAliased.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/stepAliased.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/whichAliased.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/invBoxCox.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/buildMS.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/statsMS.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/plotMS.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/plotHD.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/plotESDA.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/looCV.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/krigeCV.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvKrigeCDF.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvStats.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/spredict.R")
-source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/linesREML.R")
-initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = GRASSgisDbase,
+#data <- cal_data@data
+#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/stepVIF.R")
+#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/isAliased.R")
+#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/stepAliased.R")
+#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/whichAliased.R")
+#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/invBoxCox.R")
+#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/buildMS.R")
+#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/statsMS.R")
+# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/plotMS.R")
+# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/looCV.R")
+# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/krigeCV.R")
+# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvKrigeCDF.R")
+# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvStats.R")
+# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/spredict.R")
+# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/linesREML.R")
+initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
           location = "dnos-sm-rs", mapset = "predictions",
           pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
@@ -66,20 +65,23 @@ cal_data <- spTransform(cal_data, wgs1984utm22s)
 str(cal_data)
 plot(cal_data)
 
-# Exploratory data analysis
+# Box-Cox transformation
 bc_lambda <- list(CLAY = NA, ORCA = NA, ECEC = NA)
 
+source("/home/lgcs-mds/alessandro/pedometrics/R/plotHD.R")
 # SOIL DATA - CLAY -------------------------------------------------------------
 vari <- cal_data$CLAY
-# histogram with original variable
+# Histogram with original variable
 xlab <- expression(paste('CLAY (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
+tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
+              col = c("lightgray", "black"), lty = "dashed",
+              stats = FALSE, lwd = c(0.001, 0.5),
               scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay-dist-original.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "FIG2a.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
+trellis.par.set(fontsize = list(text = 7, points = 5), 
+                axis.line = list(lwd = 0.01),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 print(tmp)
@@ -89,12 +91,12 @@ gc()
 # histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox CLAY (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
+              scales = list(cex = c(1, 1)), lwd = c(0.001, 0.5))
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay-dist-trans.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "FIG2d.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
+                axis.line = list(lwd = 0.01),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 print(tmp)
@@ -115,13 +117,14 @@ gc()
 vari <- cal_data$ORCA
 # histogram with original variable
 xlab  <-  expression(paste('SOC (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
+tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
+              col = c("lightgray", "black"), lty = "dashed",
+              stats = FALSE, lwd = c(0.001, 0.5),
               scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon-dist-original.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "FIG2b.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
                 axis.line = list(lwd = 0.01),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
@@ -132,12 +135,11 @@ gc()
 # histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox SOC (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
+              scales = list(cex = c(1, 1)), lwd = c(0.001, 0.5))
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon-dist-trans.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "FIG2e.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
                 axis.line = list(lwd = 0.01),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
@@ -159,13 +161,14 @@ gc()
 vari <- cal_data$ECEC
 # Histogram with original variable
 xlab  <-  expression(paste('ECEC (',mmol, ' ', kg^-1,')', sep = ''))
-tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
+tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
+              col = c("lightgray", "black"), lty = "dashed",
+              stats = FALSE, lwd = c(0.001, 0.5),
               scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec-dist-original.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "FIG2c.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
                 axis.line = list(lwd = 0.01),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
@@ -176,12 +179,11 @@ gc()
 # Histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox ECEC (',mmol, ' ', kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
+              scales = list(cex = c(1, 1)), lwd = c(0.001, 0.5))
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec-dist-trans.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "FIG2f.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
                 axis.line = list(lwd = 0.01),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
@@ -198,6 +200,17 @@ xyplot(ECEC_BC ~ ECEC, data = cal_data@data, xlab = "original scale",
 dev.off()
 rm(vari, lambda)
 gc()
+
+# convert pdf figures to png
+pdf2png <- 
+  function(file, density = 300, quality = 100) {
+    cmd <- paste("convert -density ", density, " ", file, ".pdf -quality ",
+                 quality, " ", file, ".png", sep = "")
+    lapply(cmd, system)
+}
+
+pdf_file <- paste(firstArticle_dir, "FIG2", letters[1:6], sep = "")
+pdf2png(pdf_file)
 
 # SETUP COVARIATE DATABASE #####################################################
 # database 1
