@@ -1,5 +1,5 @@
 # DESCRIPTION ##################################################################
-# General configuration and pre-processing. We have some exploratory data
+# General configurations and pre-processing. We have some exploratory data
 # analysis, the preparation of figures of the study area, etc.
 
 # SETTINGS #####################################################################
@@ -29,32 +29,32 @@ ls()
 # SET DATA DIRECTORIES AND DEFINITIONS #########################################
 
 # Directories ------------------------------------------------------------------
-# exploratory data analysis
-explora.dir <- path.expand("~/PROJECTS/DNOS-SM/exploratory/")
-# covar-validation directory
-covar.validation.dir <- path.expand("~/PROJECTS/DNOS-SM/covar-validation/")
-# rdata directory
-rdata.dir <- path.expand("~/PROJECTS/DNOS-SM/rdata/")
-# hydrological data
-hydro.dir <- path.expand("~/PROJECTS/DNOS-SM/hydrology/")
-# DEM and DEM derivatives
-dem.dir <- path.expand("~/PROJECTS/DNOS-SM/terrain-attributes/")
+# Exploratory data analysis
+explora_dir <- path.expand("~/Dropbox/dnos-sm-rs/explora/")
+# Validation of the covariates
+cov_valid_dir <- path.expand("~/Dropbox/dnos-sm-rs/covar-valid/")
+# R data
+rdata_dir <- path.expand("~/Dropbox/dnos-sm-rs/rdata/")
+# Hydrological data
+hydro_dir <- path.expand("~/Dropbox/dnos-sm-rs/hydrology/")
+# DEM and its derivatives
+dem_dir <- path.expand("~/Dropbox/dnos-sm-rs/dem/")
 # Geological maps
-geo.dir <- path.expand("~/PROJECTS/DNOS-SM/geology/")
+geo_dir <- path.expand("~/Dropbox/dnos-sm-rs/geology/")
 # Land use maps
-land.dir <- path.expand("~/PROJECTS/DNOS-SM/land-use/")
-# Soil maps
-soil.dir <- path.expand("~/PROJECTS/DNOS-SM/soil-class/")
+land_dir <- path.expand("~/Dropbox/dnos-sm-rs/land-use/")
+# Area-class soil maps
+soil_dir <- path.expand("~/Dropbox/dnos-sm-rs/soil-class/")
 # Point data
-point_dir <- path.expand("~/PROJECTS/DNOS-SM/point-data/")
+point_dir <- path.expand("~/Dropbox/dnos-sm-rs/point-data/")
 # Resampling methors for grids
-resample.dir <- path.expand("~/PROJECTS/DNOS-SM/grid-resample/")
+resample_dir <- path.expand("~/Dropbox/dnos-sm-rs/grid-resample/")
 # Boudaries
-bounding.dir <- path.expand("~/PROJECTS/DNOS-SM/boundaries/")
-# Updating environmental covariates (chapter/article 1)
-update_covars_dir <- path.expand("~/PROJECTS/DNOS-SM/update-covars/")
+bound_dir <- path.expand("~/Dropbox/dnos-sm-rs/boundaries/")
+# 1st thesis article
+firstArticle_dir <- path.expand("~/Dropbox/dnos-sm-rs/firstArticle/")
 # Point pattern analysys
-ppp_dir <- path.expand("~/PROJECTS/DNOS-SM/point-pattern-analysis/")
+ppa_dir <- path.expand("~/Dropbox/dnos-sm-rs/ppa/")
 
 # Cell size of the prediction grid ---------------------------------------------
 # We choose the cellsize to be 5 metres because this is the smallest
@@ -70,8 +70,8 @@ cellsize <- 5
 # system(paste(grass.addons, "r.gauss -help", sep = ""))
 
 # GRASS GIS DBase --------------------------------------------------------------
-GRASSgisDbase <- path.expand("~/GRASSgisDbase")
-initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = GRASSgisDbase, 
+dbGRASS <- path.expand("~/dbGRASS")
+initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS, 
           location = "dnos-sm-rs", mapset = "predictions", pid = Sys.getpid(),
           override = TRUE)
 writeRAST6(dnos.raster, "dnos.raster", overwrite = TRUE)
@@ -84,6 +84,9 @@ sirgas2000utm22s <- CRS("+init=epsg:31982")
 wgs1984utm22s <- CRS("+init=epsg:32722")
 wgs1984 <- CRS("+init=epsg:4326")
 ca_utm22s <- CRS("+init=epsg:22522")
+
+
+
 
 # LOAD AND PROCESS DATA ########################################################
 
@@ -110,14 +113,14 @@ plot(labData)
 # zero (0).
 bc_lambda <- list(clay = NA, carbon = NA, ecec = NA)
 
-# Laboratory data - clay content ----------------------------------------------
+# Laboratory data - clay content -----------------------------------------------
 var <- labData$CLAY
 # histogram with original variable
 xlab <- expression(paste('CLAY (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
               scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(explora.dir, "clay-dist-original.pdf", sep = ""),
+pdf(file = paste(explora_dir, "clay-dist-original.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
@@ -132,7 +135,7 @@ xlab  <-  expression(paste('Box-Cox CLAY (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
               scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(explora.dir, "clay-dist-trans.pdf", sep = ""),
+pdf(file = paste(explora_dir, "clay-dist-trans.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
@@ -193,163 +196,6 @@ proj4string(cal_data) <- sirgas2000
 cal_data <- spTransform(cal_data, wgs1984utm22s)
 str(cal_data)
 plot(cal_data)
-
-# EXPLORATORY DATA ANALYSIS
-# Dependent variables should have Gaussian distribution - this is one of the
-# requirements of linear models. It is expected that, if the dependent varible
-# has a Gaussian distribution, then the residuals also will have a Gaussian
-# distribution. Transformations are performed using the power family of
-# Box-Cox transformations. Only non-negative lambda values are used. This is
-# a requirement fo performing the back transformation using Monte Carlo 
-# simulations. When lambda is negative, the integral over the entire space of
-# the probability distribution can be infinite, and thus the mean and variance 
-# cannot be computed. When a negative lambda is estimated, it is replaced by
-# zero (0).
-
-bc_lambda <- list(clay = NA, carbon = NA, ecec = NA)
-
-
-# Calibration Data - clay content ----------------------------------------------
-var <- cal_data$clay
-# histogram with original variable
-xlab  <-  expression(paste('CLAY (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
-dev.off()
-pdf(file = paste(explora.dir, "clay-dist-original.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
-                axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
-print(tmp)
-dev.off()
-rm(tmp, xlab)
-gc()
-# histogram with transformed variable
-xlab  <-  expression(paste('Box-Cox CLAY (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
-dev.off()
-pdf(file = paste(explora.dir, "clay-dist-trans.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
-                axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
-print(tmp)
-dev.off()
-rm(tmp, var, xlab)
-gc()
-# transformation
-bc_lambda$clay <- lambda
-cal_data$clay_bc <- bcPower(cal_data$clay, lambda)
-dev.off()
-pdf(file = paste(explora.dir, "clay_bc.pdf", sep = ""))
-xyplot(clay_bc ~ clay, data = cal_data@data, xlab = "original scale",
-       ylab = "Box-Cox transformed", main = "Clay content")
-dev.off()
-rm(var, par, lambda, leg)
-gc()
-
-# Calibration Data - carbon content --------------------------------------------
-var <- cal_data$carbon
-# histogram with original variable
-xlab  <-  expression(paste('SOC (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
-dev.off()
-pdf(file = paste(explora.dir, "carbon-dist-original.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
-                axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
-print(tmp)
-dev.off()
-rm(tmp, xlab)
-gc()
-# histogram with transformed variable
-xlab  <-  expression(paste('Box-Cox SOC (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
-dev.off()
-pdf(file = paste(explora.dir, "carbon-dist-trans.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
-                axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
-print(tmp)
-dev.off()
-rm(var, tmp, xlab)
-gc()
-
-# transformation
-bc_lambda$carbon <- lambda
-cal_data$carbon_bc <- bcPower(cal_data$carbon, lambda)
-dev.off()
-pdf(file = paste(explora.dir, "carbon_bc.pdf", sep = ""))
-xyplot(carbon_bc ~ carbon, data = cal_data@data, xlab = "original scale",
-       ylab = "Box-Cox transformed", main = "Carbon content")
-dev.off()
-rm(var, par, lambda, leg)
-gc()
-
-# Calibration Data - ECEC ------------------------------------------------------
-var <- cal_data$ecec
-# histogram with original variable
-xlab  <-  expression(paste('ECEC (',mmol, ' ', kg^-1,')', sep = ''))
-tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
-dev.off()
-pdf(file = paste(explora.dir, "ecec-dist-original.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
-                axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
-print(tmp)
-dev.off()
-rm(tmp, xlab)
-gc()
-# Histogram with transformed variable
-xlab  <-  expression(paste('Box-Cox ECEC (',mmol, ' ', kg^-1,')', sep = ''))
-tmp <- plotHD(var, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
-              scales = list(cex = c(1, 1)))
-dev.off()
-pdf(file = paste(explora.dir, "ecec-dist-trans.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5),
-                plot.line = list(lwd = 0.001),
-                axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
-print(tmp)
-dev.off()
-rm(var, tmp, xlab)
-gc()
-# transformation
-bc_lambda$ecec <- lambda
-cal_data$ecec_bc <- bcPower(cal_data$ecec, lambda)
-dev.off()
-pdf(file = paste(explora.dir, "ecec_bc.pdf", sep = ""))
-xyplot(ecec_bc ~ ecec, data = cal_data@data, xlab = "original scale",
-       ylab = "Box-Cox transformed", main = "ECEC")
-dev.off()
-rm(var, par, lambda, leg)
-
-# Venn diagram
-install.packages("VennDiagram")
-require(VennDiagram)
-venn.diagram(list(CLAY = c("DEM", "GEO"), SOC = c("DEM", "LAND"), ECEC = c("LAND", "GEO")),
-             fill = c("red", "green", "blue"),
-             filename = "tmp.tiff")
 
 # Calibration data - fill gaps (bulk density) ----------------------------------
 density <- read.table(paste(point_dir, "calibration-data.csv", sep = ""),

@@ -1,5 +1,4 @@
-# DESCRIPTION ##################################################################
-# Source code used to develop the first chapter (article) of my PhD research 
+# DESCRIPTION ################################################################## Source code used to develop the first chapter (article) of my PhD research 
 # project. The reference for the article is as follows:
 # Samuel-Rosa, A.; Heuvelink, G. B. M.; Vasques, G. M. & Anjos, L. H. C. Do more
 # detailed environmental covariates deliver more accurate soil maps?. Geoderma,
@@ -53,6 +52,152 @@ initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = GRASSgisDbase,
           location = "dnos-sm-rs", mapset = "predictions",
           pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
+
+# SOIL DATA ####################################################################
+cal_data <- read.table("data/labData.csv", dec = ".", head = TRUE, sep = ";",
+                       stringsAsFactors = FALSE, na.strings = "na")
+head(cal_data)
+cal_data <- cal_data[0:350, c("sampleid", "longitude", "latitude", "CLAY",
+                              "ORCA", "ECEC")]
+tail(cal_data)
+coordinates(cal_data) <- ~ longitude + latitude
+proj4string(cal_data) <- sirgas2000
+cal_data <- spTransform(cal_data, wgs1984utm22s)
+str(cal_data)
+plot(cal_data)
+
+# Exploratory data analysis
+bc_lambda <- list(CLAY = NA, ORCA = NA, ECEC = NA)
+
+# SOIL DATA - CLAY -------------------------------------------------------------
+vari <- cal_data$CLAY
+# histogram with original variable
+xlab <- expression(paste('CLAY (g ',kg^-1,')', sep = ''))
+tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
+              scales = list(cex = c(1, 1)))
+dev.off()
+pdf(file = paste(firstArticle_dir, "clay-dist-original.pdf", sep = ""),
+    width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(fontsize = list(text = 7, points = 5),
+                plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
+                layout.widths = list(left.padding = 0, right.padding = 0), 
+                layout.heights = list(top.padding = 0, bottom.padding = 0))
+print(tmp)
+dev.off()
+rm(tmp, xlab)
+gc()
+# histogram with transformed variable
+xlab  <-  expression(paste('Box-Cox CLAY (g ',kg^-1,')', sep = ''))
+tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
+              scales = list(cex = c(1, 1)))
+dev.off()
+pdf(file = paste(firstArticle_dir, "clay-dist-trans.pdf", sep = ""),
+    width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(fontsize = list(text = 7, points = 5),
+                plot.line = list(lwd = 0.001), axis.line = list(lwd = 0.01),
+                layout.widths = list(left.padding = 0, right.padding = 0), 
+                layout.heights = list(top.padding = 0, bottom.padding = 0))
+print(tmp)
+dev.off()
+rm(tmp, xlab)
+gc()
+# transformation
+lambda <- powerTransform(vari)$lambda
+bc_lambda$CLAY <- lambda
+cal_data$CLAY_BC <- bcPower(cal_data$CLAY, lambda)
+xyplot(CLAY_BC ~ CLAY, data = cal_data@data, xlab = "original scale",
+       ylab = "Box-Cox transformed", main = "Clay content")
+dev.off()
+rm(vari, lambda)
+gc()
+
+# SOIL DATA - ORCA -------------------------------------------------------------
+vari <- cal_data$ORCA
+# histogram with original variable
+xlab  <-  expression(paste('SOC (g ',kg^-1,')', sep = ''))
+tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
+              scales = list(cex = c(1, 1)))
+dev.off()
+pdf(file = paste(firstArticle_dir, "carbon-dist-original.pdf", sep = ""),
+    width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(fontsize = list(text = 7, points = 5),
+                plot.line = list(lwd = 0.001),
+                axis.line = list(lwd = 0.01),
+                layout.widths = list(left.padding = 0, right.padding = 0), 
+                layout.heights = list(top.padding = 0, bottom.padding = 0))
+print(tmp)
+dev.off()
+rm(tmp, xlab)
+gc()
+# histogram with transformed variable
+xlab  <-  expression(paste('Box-Cox SOC (g ',kg^-1,')', sep = ''))
+tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
+              scales = list(cex = c(1, 1)))
+dev.off()
+pdf(file = paste(firstArticle_dir, "carbon-dist-trans.pdf", sep = ""),
+    width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(fontsize = list(text = 7, points = 5),
+                plot.line = list(lwd = 0.001),
+                axis.line = list(lwd = 0.01),
+                layout.widths = list(left.padding = 0, right.padding = 0), 
+                layout.heights = list(top.padding = 0, bottom.padding = 0))
+print(tmp)
+dev.off()
+rm(tmp, xlab)
+gc()
+# transformation
+lambda <- 0
+bc_lambda$ORCA <- lambda
+cal_data$ORCA_BC <- bcPower(cal_data$ORCA, lambda)
+xyplot(ORCA_BC ~ ORCA, data = cal_data@data, xlab = "original scale",
+       ylab = "Box-Cox transformed", main = "Carbon content")
+dev.off()
+rm(vari, lambda)
+gc()
+
+# SOIL DATA - ECEC -------------------------------------------------------------
+vari <- cal_data$ECEC
+# Histogram with original variable
+xlab  <-  expression(paste('ECEC (',mmol, ' ', kg^-1,')', sep = ''))
+tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = FALSE, stats = FALSE,
+              scales = list(cex = c(1, 1)))
+dev.off()
+pdf(file = paste(firstArticle_dir, "ecec-dist-original.pdf", sep = ""),
+    width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(fontsize = list(text = 7, points = 5),
+                plot.line = list(lwd = 0.001),
+                axis.line = list(lwd = 0.01),
+                layout.widths = list(left.padding = 0, right.padding = 0), 
+                layout.heights = list(top.padding = 0, bottom.padding = 0))
+print(tmp)
+dev.off()
+rm(tmp, xlab)
+gc()
+# Histogram with transformed variable
+xlab  <-  expression(paste('Box-Cox ECEC (',mmol, ' ', kg^-1,')', sep = ''))
+tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
+              scales = list(cex = c(1, 1)))
+dev.off()
+pdf(file = paste(firstArticle_dir, "ecec-dist-trans.pdf", sep = ""),
+    width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(fontsize = list(text = 7, points = 5),
+                plot.line = list(lwd = 0.001),
+                axis.line = list(lwd = 0.01),
+                layout.widths = list(left.padding = 0, right.padding = 0), 
+                layout.heights = list(top.padding = 0, bottom.padding = 0))
+print(tmp)
+dev.off()
+rm(tmp, xlab)
+gc()
+# transformation
+lambda <- 0
+bc_lambda$ECEC <- lambda
+cal_data$ECEC_BC <- bcPower(cal_data$ECEC, lambda)
+xyplot(ECEC_BC ~ ECEC, data = cal_data@data, xlab = "original scale",
+       ylab = "Box-Cox transformed", main = "ECEC")
+dev.off()
+rm(vari, lambda)
+gc()
 
 # SETUP COVARIATE DATABASE #####################################################
 # database 1
