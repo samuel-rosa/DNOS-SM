@@ -481,13 +481,21 @@ forms$fine <- lapply(unlist(forms$fine), as.formula)
 
 # LINEAR MODEL FITTING #########################################################
 # Here we fit linear models using ordinary least squares to model the 
-# deterministic component.
+# deterministic component. We use several strategies to select the predictor 
+# variables so that we can evaluate the sensitivity of our results to the
+# chosen method. The methods are:
+# - use all predictors;
+# - selection using the VIF
+# - selection using the VIF and stepwise AIC
+# - selection using the VIV and forward AIC
+# - selection using the VIV and backward AIC
+# The final linear models are selected using the VIF and stepwise AIC.
 
 # CLAY -------------------------------------------------------------------------
 formula <- lapply(forms$main, update, CLAY_BC ~ .)
 data <- cal_data@data
 
-# build model series using several strategies
+# build model series
 clay_full <- buildMS(formula, data)
 clay_vif <- buildMS(formula, data, vif = TRUE)
 clay_both <- buildMS(formula, data, vif = TRUE, aic = TRUE)
@@ -497,16 +505,16 @@ clay_backward <- buildMS(formula, data, vif = TRUE, aic = TRUE,
                          aic.direction = "backward")
 
 # get statistics of model series
-clay_full_stats     <- statsMS(clay_full, combs$num, "rmse")
-clay_vif_stats      <- statsMS(clay_vif, combs$num, "rmse")
-clay_both_stats     <- statsMS(clay_both, combs$num, "rmse")
-clay_forward_stats  <- statsMS(clay_forward, combs$num, "rmse")
+clay_full_stats <- statsMS(clay_full, combs$num, "rmse")
+clay_vif_stats <- statsMS(clay_vif, combs$num, "rmse")
+clay_both_stats <- statsMS(clay_both, combs$num, "rmse")
+clay_forward_stats <- statsMS(clay_forward, combs$num, "rmse")
 clay_backward_stats <- statsMS(clay_backward, combs$num, "rmse")
 
 # plot and save all model series
 grid <- c(2:6)
 line <- "ADJ_r2"
-ind  <- 2
+ind <- 2
 color <- c("lightyellow", "palegreen")
 a_plot <- plotMS(clay_full_stats, grid, line, ind, color = color, 
                  main = "full model")
@@ -519,15 +527,16 @@ d_plot <- plotMS(clay_backward_stats, grid, line, ind, color = color,
 e_plot <- plotMS(clay_both_stats, grid, line, ind, color = color,
                  main = "stepwise selection")
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_model_series_all.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_model_series_all.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
 dev.off()
 rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
+
 # MODEL SERIES PLOT - stepwise variable selection
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_models.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_models.pdf", sep = ""),
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -536,6 +545,7 @@ plotMS(clay_both_stats, grid = c(2:6), line = "ADJ_r2", ind = 2,
        color = c("lightyellow", "palegreen"),
        xlab = "CLAY model ranking", scales = list(cex = c(1, 1)))
 dev.off()
+
 # check the effect of the number of observations (200, 300)
 data <- cal_data@data
 data <- data[sample(c(1:350), size = 200), ]
@@ -564,14 +574,14 @@ res    <- residuals(model)
 lambda <- bc_lambda$clay
 # residual plots
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_base_lm_res.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_base_lm_res.pdf", sep = ""),
     width = 7, height = 11)
 par(mfrow = c(3, 2))
 plot(model, which = c(1:6))
 dev.off()
 # exploratory spatial data analysis
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_base_lm_esda.pdf", sep = ""))
+pdf(file = paste(firstArticle_dir, "clay_base_lm_esda.pdf", sep = ""))
 plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
 
@@ -582,14 +592,14 @@ res   <- residuals(model)
 lambda <- bc_lambda$clay
 # residual plots
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_best_lm_res.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_best_lm_res.pdf", sep = ""),
     width = 7, height = 11)
 par(mfrow = c(3, 2))
 plot(model, which = c(1:6))
 dev.off()
 # exploratory spatial data analysis
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_best_lm_esda.pdf", sep = ""))
+pdf(file = paste(firstArticle_dir, "clay_best_lm_esda.pdf", sep = ""))
 plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
          cutoff = 1000, width = 1000/10)
 dev.off()
@@ -622,12 +632,16 @@ ind  <- 2
 color <- c("lightyellow", "palegreen")
 a_plot <- plotMS(carbon_full_stats, grid, line, ind, color = color,
                  main = "full model")
-b_plot <- plotMS(carbon_vif_stats, grid, line, ind, color = color, main = "VIF selection")
-c_plot <- plotMS(carbon_forward_stats, grid, line, ind, color = color, main = "forward selection")
-d_plot <- plotMS(carbon_backward_stats, grid, line, ind, color = color, main = "backward selection")
-e_plot <- plotMS(carbon_both_stats, grid, line, ind, color = color, main = "stepwise selection")
+b_plot <- plotMS(carbon_vif_stats, grid, line, ind, color = color, 
+                 main = "VIF selection")
+c_plot <- plotMS(carbon_forward_stats, grid, line, ind, color = color, 
+                 main = "forward selection")
+d_plot <- plotMS(carbon_backward_stats, grid, line, ind, color = color, 
+                 main = "backward selection")
+e_plot <- plotMS(carbon_both_stats, grid, line, ind, color = color, 
+                 main = "stepwise selection")
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_model_series_all.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "carbon_model_series_all.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
@@ -636,7 +650,7 @@ rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
 gc()
 # MODEL SERIES PLOT - stepwise variable selection
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_models.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "carbon_models.pdf", sep = ""),
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -674,14 +688,14 @@ res   <- residuals(model)
 lambda <- bc_lambda$carbon
 # residual plots
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_base_lm_res.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "carbon_base_lm_res.pdf", sep = ""),
     width = 7, height = 11)
 par(mfrow = c(3, 2))
 plot(model, which = c(1:6))
 dev.off()
 # exploratory spatial data analysis
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_base_lm_esda.pdf", sep = ""))
+pdf(file = paste(firstArticle_dir, "carbon_base_lm_esda.pdf", sep = ""))
 plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
          cutoff = 1000, width = 1000/10)
 dev.off()
@@ -693,29 +707,32 @@ res   <- residuals(model)
 lambda <- bc_lambda$carbon
 # residual plots
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_best_lm_res.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "carbon_best_lm_res.pdf", sep = ""),
     width = 7, height = 11)
 par(mfrow = c(3, 2))
 plot(model, which = c(1:6))
 dev.off()
 # exploratory spatial data analysis
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_best_lm_esda.pdf", sep = ""))
+pdf(file = paste(firstArticle_dir, "carbon_best_lm_esda.pdf", sep = ""))
 plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
          cutoff = 1000, width = 1000/10)
 dev.off()
 
 # ECEC -------------------------------------------------------------------------
+formula <- lapply(forms$main, update, ECEC_BC ~ .)
 data <- cal_data@data
+
 # fit using several strategies
-ecec_full     <- buildMS(forms$ecec, data)
-ecec_vif      <- buildMS(forms$ecec, data, vif = TRUE)
-ecec_both     <- buildMS(forms$ecec, data, vif = TRUE, aic = TRUE, 
-                                  aic.direction = "both")
-ecec_forward  <- buildMS(forms$ecec, data, vif = TRUE, aic = TRUE, 
-                                  aic.direction = "forward")
-ecec_backward <- buildMS(forms$ecec, data, vif = TRUE, aic = TRUE, 
-                                  aic.direction = "backward")
+ecec_full <- buildMS(formula, data)
+ecec_vif <- buildMS(formula, data, vif = TRUE)
+ecec_both <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
+                     aic.direction = "both")
+ecec_forward <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
+                        aic.direction = "forward")
+ecec_backward <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
+                         aic.direction = "backward")
+
 # get statistics of model series
 ecec_full_stats <- statsMS(ecec_full, combs$num, "rmse")
 ecec_vif_stats <- statsMS(ecec_vif, combs$num, "rmse")
@@ -728,13 +745,18 @@ grid <- c(2:6)
 line <- "ADJ_r2"
 ind  <- 2
 color <- c("lightyellow", "palegreen")
-a_plot <- plotMS(ecec_full_stats, grid, line, ind, color = color, main = "full model")
-b_plot <- plotMS(ecec_vif_stats, grid, line, ind, color = color, main = "VIF selection")
-c_plot <- plotMS(ecec_forward_stats, grid, line, ind, color = color, main = "forward selection")
-d_plot <- plotMS(ecec_backward_stats, grid, line, ind, color = color, main = "backward selection")
-e_plot <- plotMS(ecec_both_stats, grid, line, ind, color = color, main = "stepwise selection")
+a_plot <- plotMS(ecec_full_stats, grid, line, ind, color = color, 
+                 main = "full model")
+b_plot <- plotMS(ecec_vif_stats, grid, line, ind, color = color, 
+                 main = "VIF selection")
+c_plot <- plotMS(ecec_forward_stats, grid, line, ind, color = color, 
+                 main = "forward selection")
+d_plot <- plotMS(ecec_backward_stats, grid, line, ind, color = color, 
+                 main = "backward selection")
+e_plot <- plotMS(ecec_both_stats, grid, line, ind, color = color, 
+                 main = "stepwise selection")
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_model_series_all.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "ecec_model_series_all.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
@@ -743,7 +765,7 @@ rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
 gc()
 # MODEL SERIES PLOT - stepwise variable selection
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_models.pdf", sep = ""), 
+pdf(file = paste(firstArticle_dir, "ecec_models.pdf", sep = ""), 
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -781,14 +803,14 @@ res    <- residuals(model)
 lambda <- bc_lambda$ecec
 # residual plots
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_base_lm_res.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "ecec_base_lm_res.pdf", sep = ""),
     width = 7, height = 11)
 par(mfrow = c(3, 2))
 plot(model, which = c(1:6))
 dev.off()
 # exploratory spatial data analysis
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_base_lm_esda.pdf", sep = ""))
+pdf(file = paste(firstArticle_dir, "ecec_base_lm_esda.pdf", sep = ""))
 plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
          cutoff = 1000, width = 1000/10)
 dev.off()
@@ -800,14 +822,14 @@ res   <- residuals(model)
 lambda <- bc_lambda$ecec
 # residual plots
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_best_lm_res.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "ecec_best_lm_res.pdf", sep = ""),
     width = 7, height = 11)
 par(mfrow = c(3, 2))
 plot(model, which = c(1:6))
 dev.off()
 # exploratory spatial data analysis
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_best_lm_esda.pdf", sep = ""))
+pdf(file = paste(firstArticle_dir, "ecec_best_lm_esda.pdf", sep = ""))
 plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
          cutoff = 1000, width = 1000/10)
 dev.off()
@@ -867,7 +889,7 @@ rownames(EnvCov) <- c("\\texttt{soil}", "\\texttt{land}",
 colnames(EnvCov) <- rep(c("less", "more"), 3)
 long_cap <- "Variation of the adjusted R$^2$ ($\\Delta$R$^2_{adj}$) when dropping one environmental covariate (EnvCov) in the models built using only the less accurate or the more accurate version of all environmental covariates."
 foot <- "* Environmental covariates (EnvCov): \\texttt{soil} - soil map, \\texttt{land} - land use map, \\texttt{geo} - geological map, \\texttt{sat} - satellite image, and \\texttt{dem} - digital elevation model. ** $\\Delta$R$^2_{adj} = R$^2_{adj}_{p=5} - R$^2_{adj}_{p=5-1}$."
-file <-  paste(update_covars_dir, "drop-covars.tex", sep = "")
+file <-  paste(firstArticle_dir, "drop-covars.tex", sep = "")
 latex(EnvCov, file = file, label = "tab:drop", table.env = TRUE, 
       longtable = FALSE, cgroup = c("CLAY","SOC", "ECEC"), n.cgroup = c(2, 2, 2), 
       na.blank = TRUE, ctable = TRUE, caption = long_cap, where = NULL,
@@ -1057,7 +1079,7 @@ clay_v <- update(c(clay_v2, clay_v4), ylab = ylab, xlab = "Distance [m]",
                  asp = 1, scales = list(cex = c(1, 1)), layout = c(2, 1))
 # save plot
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_lmm.pdf", sep = ""), 
+pdf(file = paste(firstArticle_dir, "clay_lmm.pdf", sep = ""), 
     width = 9/cm(1), height = 6/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -1224,7 +1246,7 @@ soc_v <- update(c(soc_v2, soc_v4), ylab = ylab, layout = c(2, 1),
             xlab = "Distance [m]", asp = 1, scales = list(cex = c(1, 1)))
 # save plot
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_lmm.pdf", sep = ""), 
+pdf(file = paste(firstArticle_dir, "carbon_lmm.pdf", sep = ""), 
     width = 9/cm(1), height = 6/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -1398,7 +1420,7 @@ ecec_v <- update(c(ecec_v2, ecec_v4), ylab = ylab, xlab = "Distance [m]", asp = 
              layout = c(2, 1), scales = list(cex = c(1, 1)))
 # save plot
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_lmm.pdf", sep = ""), 
+pdf(file = paste(firstArticle_dir, "ecec_lmm.pdf", sep = ""), 
     width = 9/cm(1), height = 6/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -1606,7 +1628,7 @@ p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
 # save plots with predictions
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_base_lmm_krige.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_base_lmm_krige.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1615,7 +1637,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_best_lmm_krige.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_best_lmm_krige.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1649,7 +1671,7 @@ p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
 # save plots with prediction variance
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_base_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_base_lmm_krige_var.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1658,7 +1680,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(update_covars_dir, "clay_best_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_best_lmm_krige_var.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1734,7 +1756,7 @@ p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
 # save plots with predictions
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_base_lmm_krige.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "carbon_base_lmm_krige.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1743,7 +1765,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_best_lmm_krige.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "carbon_best_lmm_krige.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1777,7 +1799,7 @@ p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
 # save plots with prediction variance
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_base_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "carbon_base_lmm_krige_var.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1786,7 +1808,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(update_covars_dir, "carbon_best_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "carbon_best_lmm_krige_var.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1880,7 +1902,7 @@ p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
 # save plots with predictions
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_base_lmm_krige.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "ecec_base_lmm_krige.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1889,7 +1911,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_best_lmm_krige.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "ecec_best_lmm_krige.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1922,7 +1944,7 @@ p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
 # save plots with prediction variance
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_base_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "ecec_base_lmm_krige_var.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1931,7 +1953,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(update_covars_dir, "ecec_best_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "ecec_best_lmm_krige_var.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -2015,7 +2037,7 @@ colheads <- c("Type", "ME", "MAE", "RMSE", "SRMSE", "AVE")
 rowname <- rep(c("Base", "", "Best", ""), 3)
 long_cap <- "Statistics of the LOO-CV of \\textit{base} and \\textit{best} multiple linear regression models (LM) and linear mixed models (LMM)."
 foot <- "Statistics: mean error (ME), mean absolute error (MAE), root-mean-squared error (RMSE), scaled root-mean-squared error (SRMSE, unitless), and amount of variance explained (AVE, percent)."
-file <-  paste(update_covars_dir, "cv-stats.tex", sep = "")
+file <-  paste(firstArticle_dir, "cv-stats.tex", sep = "")
 digits <- c(0, 2, 1, 1, 2, 1)
 latex(Model, ctable = TRUE, n.rgroup = c(4, 4, 4), rgroup = rgroup, 
       file = file, label = "tab:cv-stats", table.env = TRUE, 
