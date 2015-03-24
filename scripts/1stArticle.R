@@ -12,6 +12,7 @@ require(spgrass6)
 require(raster)
 require(gstat)
 library(geoR)
+require(rgeos)
 library(pedometrics)
 require(car)
 require(caret)
@@ -51,6 +52,99 @@ initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
           location = "dnos-sm-rs", mapset = "predictions",
           pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
+
+# LOCATION OF THE STUDY AREA ###################################################
+
+# LOCATION - Brazil ------------------------------------------------------------
+brazil <- shapefile("~/dbGIS/dnos-sm-rs/brasil.shp")
+bb <- bbox(brazil)
+bb[1, 2] <- -34.7
+brazil@bbox <- bb
+pts <- data.frame(rbind(c(-53.790215, -29.657668), c(-47.887768, -15.788838),
+                        c(-46.665337, -23.536445), c(-51.211134, -30.032484),
+                        c(-59.992370, -3.080757)))
+colnames(pts) <- c("long", "lat")
+coordinates(pts) <- ~ long + lat
+proj4string(pts) <- proj4string(brazil)
+pts <- list("sp.points", pts, pch = 20, cex = 0.5, col = "black")
+# set map colors
+brazil$UF_05 <- as.factor(brazil$UF_05)
+rs <- rep("lightgray", length(brazil$UF_05))
+rs[which(brazil$UF_05 == "RS")] = "darkgray"
+# prepare spplot
+p <- spplot(brazil, zcol = "UF_05", aspect = "iso", col = "gray", 
+            scales = list(draw = TRUE, 
+                          x = list(at = seq(-70, -35, 5)),
+                          y = list(at = seq(-30, 5, 5))),
+            col.regions = colorRampPalette(rs)(27), colorkey = FALSE, 
+            cex = 0.3, sp.layout = list(pts),
+            par.settings = list(fontsize = list(text = 7, points = 5),
+                                layout.widths = list(left.padding = 0, 
+                                                     right.padding = 0), 
+                                layout.heights = list(top.padding = 0,
+                                                      bottom.padding = 0)),
+            panel = function(x, y, ...) {
+              panel.polygonsplot(x, y, ...)
+              panel.abline(h = seq(-30, 0, 5), v = seq(-70, -40, 5),
+                           col = "gray", lty = "dashed", lwd = 0.5)
+              panel.text(x = -53.790215, y = -29.657668, "Santa Maria", pos = 2)
+              panel.text(x = -47.887768, y = -15.788838, "Brasília", pos = 4)
+              panel.text(x = -46.665337, y = -23.536445, "São Paulo", pos = 4)
+              panel.text(x = -51.211134, y = -30.032484, "Porto Alegre", 
+                         pos = 4)
+              panel.text(x = -59.992370, y = -3.080757, "Manaus", pos = 4)
+            }
+)
+p
+# save image
+dev.off()
+pdf(file = paste(firstArticle_dir, "FIG1a.pdf", sep = ""), width = 9/cm(1),
+    height = 9/cm(1))
+print(p)
+dev.off()
+rm(brazil, bb, pts, rs, p)
+gc()
+
+# LOCATION - Calibration observations ------------------------------------------
+pol <- readVECT6("buffer_BASIN_10")
+drain <- readVECT6("STREAM_10")
+drain <- gIntersection(drain, pol, byid = TRUE)
+p <- spplot(pol, zcol = "cat", col = "gray", fill = "lightgray",
+            scales = list(draw = TRUE),
+            colorkey = FALSE, aspect = "iso",
+            xlim = c(bbox(cal_data)[1, 1] * 0.9998, 
+                     bbox(cal_data)[1, 2] * 1.0005), 
+            ylim = c(bbox(cal_data)[2, 1] * 0.99999,
+                     bbox(cal_data)[2, 2] * 1.00001),
+            par.settings = list(fontsize = list(text = 7, points = 5),
+                                layout.widths = list(left.padding = 0, 
+                                                     right.padding = 0), 
+                                layout.heights = list(top.padding = 0,
+                                                      bottom.padding = 0)),
+            panel = function(x, y, ...) {
+              panel.polygonsplot(x, y, ...)
+              panel.points(x = coordinates(cal_data)[, 1],
+                           y = coordinates(cal_data)[, 2],
+                           pch = 20, cex = 0.5, col = "black")
+              panel.abline(v = seq(227000, 232000, 1000), 
+                           h = seq(6712000, 6722000, 1000),
+                           col = "gray", lty = "dashed", lwd = 0.5)
+            }) + layer(sp.lines(drain, col = "black", lty = "dashed", 
+                                lwd = 0.3))
+p
+# save image
+dev.off()
+pdf(file = paste(firstArticle_dir, "FIG1b.pdf", sep = ""), width = 9/cm(1),
+    height = 9/cm(1))
+print(p)
+dev.off()
+rm(pol, p, drain)
+gc()
+
+# convert pdf figures to png
+pdf_file <- paste(firstArticle_dir, "FIG1", letters[1:2], sep = "")
+pdf2png(pdf_file)
+rm(pdf_file)
 
 # SOIL DATA ####################################################################
 cal_data <- read.table("data/labData.csv", dec = ".", head = TRUE, sep = ";",

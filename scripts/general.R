@@ -109,19 +109,6 @@ labData <- spTransform(labData, wgs1984utm22s)
 str(labData)
 plot(labData)
 
-# Exploratory data analysis
-# Dependent variables should have a Gaussian distribution - this is one of the
-# requirements of linear models. It is expected that, if the dependent variable
-# has a Gaussian distribution, then the residuals also will have a Gaussian
-# distribution. Transformations are performed using the power family of
-# Box-Cox transformations. Only non-negative lambda values are used. This is
-# a requirement for performing the back-transformation using Monte Carlo 
-# simulations. When lambda is negative, the integral over the entire space of
-# the probability distribution can be infinite, and thus the mean and variance 
-# cannot be computed. When a negative lambda is estimated, it is replaced by
-# zero (0).
-bc_lambda <- list(clay = NA, carbon = NA, ecec = NA)
-
 
 
 
@@ -279,108 +266,6 @@ tmp <- as(extent(dnos.raster), "SpatialPolygons")
 proj4string(tmp) <- wgs1984utm22s
 shapefile(tmp, paste(bounding.dir, "dnos-raster-bbox.shp", sep = ""), overwrite=TRUE)
 rm(tmp)
-
-# LOCATION OF THE STUDY AREA ###################################################
-
-# Brazil -----------------------------------------------------------------------
-brazil <- shapefile("/home/alessandro/PROJECTS/DNOS-SM/boundaries/brasil.shp")
-bb <- bbox(brazil)
-bb[1, 2] <- -34.7
-brazil@bbox <- bb
-pts <- data.frame(rbind(c(-53.790215, -29.657668), c(-47.887768, -15.788838),
-                        c(-46.665337, -23.536445), c(-51.211134, -30.032484),
-                        c(-59.992370, -3.080757)))
-colnames(pts) <- c("long", "lat")
-coordinates(pts) <- ~ long + lat
-proj4string(pts) <- proj4string(brazil)
-pts <- list("sp.points", pts, pch = 20, cex = 0.5, col = "black")
-# scl <- list("SpatialPolygonsRescale", layout.scale.bar(), 
-#             offset = c(-47, -31.5), scale = 10, 
-#             fill = c("transparent", "black"))
-# text1   <- list("sp.text", c(-47, -32.5), "0 deg", cex = 1.5)
-# text2   <- list("sp.text", c(-37, -32.5), "10 deg", cex = 1.5)
-# arrow <- list("SpatialPolygonsRescale", layout.north.arrow(type = 1), 
-#               offset = c(-37.7, 1.5), scale = 2)
-# set map colors
-brazil$UF_05 <- as.factor(brazil$UF_05)
-rs <- rep("lightgray", length(brazil$UF_05))
-rs[which(brazil$UF_05 == "RS")] = "darkgray"
-# prepare spplot
-p <- spplot(brazil, zcol = "UF_05", aspect = "iso", col = "gray", 
-            scales = list(draw = TRUE, 
-                          x = list(at = seq(-70, -35, 5)),
-                          y = list(at = seq(-30, 5, 5))),
-            col.regions = colorRampPalette(rs)(27), colorkey = FALSE, 
-            cex = 0.3, sp.layout = list(pts),
-            par.settings = list(fontsize = list(text = 7, points = 5),
-                                layout.widths = list(left.padding = 0, 
-                                                     right.padding = 0), 
-                                layout.heights = list(top.padding = 0,
-                                                      bottom.padding = 0)),
-            panel = function(x, y, ...) {
-              panel.polygonsplot(x, y, ...)
-              panel.abline(h = seq(-30, 0, 5), v = seq(-70, -40, 5),
-                           col = "gray", lty = "dashed", lwd = 0.5)
-              panel.text(x = -53.790215, y = -29.657668, "Santa Maria", pos = 2)
-              panel.text(x = -47.887768, y = -15.788838, "Brasília", pos = 4)
-              panel.text(x = -46.665337, y = -23.536445, "São Paulo", pos = 4)
-              panel.text(x = -51.211134, y = -30.032484, "Porto Alegre", pos = 4)
-              panel.text(x = -59.992370, y = -3.080757, "Manaus", pos = 4)
-              }
-            )
-p
-# save image
-dev.off()
-pdf(file = paste(explora.dir, "brazil.pdf", sep = ""), width = 9/cm(1),
-    height = 9/cm(1))
-# png(file = paste(explora.dir, "brazil.png", sep = ""), width = 255,
-#     height = 255, res = 300, type = "cairo", antialias = "gray")
-print(p)
-dev.off()
-
-rm(brazil, bb, pts, scl, text1, text2, rs, p, arrow)
-gc()
-
-# Calibration observations -----------------------------------------------------
-pol <- readVECT6("buffer_BASIN_10")
-drain <- readVECT6("STREAM_10")
-drain <- gIntersection(drain, pol, byid = TRUE)
-# scl <- list("SpatialPolygonsRescale", layout.scale.bar(), 
-#             offset = c(230500, 6715600), scale = 1000, 
-#             fill = c("transparent", "black"))
-# text1 = list("sp.text", c(230500, 6715400), "0 m", cex = 1.5)
-# text2 = list("sp.text", c(231500, 6715400), "500 m", cex = 1.5)
-p <- spplot(pol, zcol = "cat", col = "gray", fill = "lightgray",
-            scales = list(draw = TRUE),
-            colorkey = FALSE, aspect = "iso",
-            xlim = c(bbox(cal_data)[1, 1] * 0.9998, bbox(cal_data)[1, 2] * 1.0005), 
-            ylim = c(bbox(cal_data)[2, 1] * 0.99999, bbox(cal_data)[2, 2] * 1.00001),
-            par.settings = list(fontsize = list(text = 7, points = 5),
-                                layout.widths = list(left.padding = 0, 
-                                                     right.padding = 0), 
-                                layout.heights = list(top.padding = 0,
-                                                      bottom.padding = 0)),
-            panel = function(x, y, ...) {
-              panel.polygonsplot(x, y, ...)
-              panel.points(x = coordinates(cal_data)[, 1],
-                           y = coordinates(cal_data)[, 2],
-                           pch = 20, cex = 0.5, col = "black")
-              panel.abline(v = seq(227000, 232000, 1000), 
-                           h = seq(6712000, 6722000, 1000),
-                           col = "gray", lty = "dashed", lwd = 0.5)
-              }) + layer(sp.lines(drain, col = "black", lty = "dashed", 
-                                  lwd = 0.3))
-p
-# save image
-dev.off()
-pdf(file = paste(explora.dir, "cal-data.pdf", sep = ""), width = 9/cm(1),
-    height = 9/cm(1))
-# png(file = paste(explora.dir, "cal-data.png", sep = ""), width = 255,
-#     height = 255, type = "cairo", antialias = "gray")
-print(p)
-dev.off()
-rm(pol, scl, text1, text2, p, drain)
-gc()
 
 # extent of the entire catchment area
 # dnos.extent <- extent(bbox(dnos.lim))
