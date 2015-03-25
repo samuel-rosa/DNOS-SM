@@ -75,6 +75,53 @@ deltaR2 <-
     return (ab)
   }
 
+# Create an object of class 'geodata' from an object of class 'lm'
+makeGeodata <-
+  function (y, model, data) {
+    covars <- attr(terms(model), "term.labels")
+    covar_col <- which(match(colnames(data), covars) != "NA")
+    data_col  <- which(colnames(data) == y)
+    geod <- as.geodata(data, coords.col = c(1, 2),
+                       data.col = data_col, covar.col = covar_col)
+    return (geod)
+  }
+
+# Fit an empirical variogram using an object of class 'lm'
+fitVariog <-
+  function (y, model, data, lambda, breaks) {
+    covars <- attr(terms(model), "term.labels")
+    geod <- makeGeodata(y = y, model = model, data = data)
+    trend <- formula(paste("~", paste(covars, collapse = " + ")))
+    vario <- variog(geodata = geod, trend = trend, lambda = lambda,
+                    breaks = breaks)
+    return (vario)
+  }
+
+# Fit a linear mixed model with REML using an object of class 'lm'
+fitREML <-
+  function (y, model, data, ini.cov.pars, nugget, lambda) {
+    covars <- attr(terms(model), "term.labels")
+    covar_col <- which(match(colnames(data), covars) != "NA")
+    data_col  <- which(colnames(data) == y)
+    geod <- as.geodata(data, coords.col = c(1, 2),
+                       data.col = data_col, covar.col = covar_col)
+    trend <- formula(paste("~", paste(covars, collapse = " + ")))
+    res <- likfit(geodata = geod, trend = trend, ini.cov.pars = ini.cov.pars,
+                  nugget = nugget, lambda = lambda, lik.method = "REML")
+    return (res)
+  }
+
+# Update an existing RData file
+# Source: http://stackoverflow.com/questions/11813096
+resave <-
+  function(..., list = character(), file) {
+    previous  <- load(file)
+    var.names <- c(list, as.character(substitute(list(...)))[-1L])
+    for (var in var.names) {
+      assign(var, get(var, envir = parent.frame()))
+    }
+    save(list = unique(c(previous, var.names)), file = file)
+}
 # LOCATION OF THE STUDY AREA ###################################################
 
 # LOCATION - Brazil ------------------------------------------------------------
@@ -937,159 +984,98 @@ save(bc_lambda, cal_data, clay_back, clay_back_stats, clay_both,
      orca_back_stats, orca_both, orca_both_stats, orca_for, orca_for_stats,
      orca_full, orca_full_stats, orca_sel, orca_vif, orca_vif_stats, pdf2png,
      preds, sat1, sat2, soil1, soil2, 
-     file = paste(firstArticle_dir, "linear-models.RData", sep = ""))
+     file = paste(firstArticle_dir, "1stArticle.RData", sep = ""))
 
-
-
-
-
-
-
-
-
-
-
-
-
-# LINEAR MIXED MODEL FITTING ###################################################
+# LINEAR MIXED MODEL ###########################################################
 data <- as.data.frame(cal_data)
 
-# # CLAY - geodata ---------------------------------------------------------------
-# clay_geodata <- list()
-# data.col  <- which(colnames(data) == "clay")
-# clay_geodata$clay <- as.geodata(data, coords.col = c(1, 2), data.col = data.col)
-# # poor model
-# covars <- attr(terms(clay_sel$poor_lm), "term.labels")
-# covar.col <- which(match(colnames(data), covars) != "NA")
-# clay_geodata$poor <- data[, covar.col]
-# # base model
-# covars <- attr(terms(clay_sel$base_lm), "term.labels")
-# covar.col <- which(match(colnames(data), covars) != "NA")
-# clay_geodata$base <- data[, covar.col]
-# # fine model
-# covars <- attr(terms(clay_sel$fine_lm), "term.labels")
-# covar.col <- which(match(colnames(data), covars) != "NA")
-# clay_geodata$fine <- data[, covar.col]
-# # best model
-# covars <- attr(terms(clay_sel$best_lm), "term.labels")
-# covar.col <- which(match(colnames(data), covars) != "NA")
-# clay_geodata$best <- data[, covar.col]
+# LINEAR MIXED MODEL - clay ----------------------------------------------------
+data <- as.data.frame(cal_data)
+y <- "CLAY"
+lambda <- bc_lambda$CLAY
 
-# CLAY - poor model ------------------------------------------------------------
-# create geodata object
-model     <- clay_sel$poor_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "clay"
-data.col  <- which(colnames(data) == data.col)
-clay_poor_geodata <- as.geodata(data, coords.col = c(1, 2), data.col = data.col,
-                                covar.col = covar.col)
-summary(clay_poor_geodata)
-rm(model, data, covar.col, data.col)
-# calculate empirical variogram
-geodata         <- clay_poor_geodata
-trend           <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda          <- bc_lambda$clay
-breaks          <- seq(0, 6500, 100)
-clay_poor_vario <- variog(geodata, trend = trend, lambda = lambda,
-                          breaks = breaks)
-plot(clay_poor_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars  <- as.matrix(expand.grid(c(0.9, 1.0, 1.1), c(400, 500, 600)))
-nugget        <- c(0.3, 0.4, 0.5)
-clay_poor_lmm <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                        nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(clay_poor_lmm)
-rm(geodata, trend, lambda, nugget, covars, ini.cov.pars)
+## Poor linear mixed model
+
+# Calculate and check the empirical variogram
+model <- clay_sel$poor_lm
+breaks <- seq(0, 6500, 100)
+tmp <- fitVariog(y, model, data, lambda, breaks)
+plot(tmp, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.9, 1.0, 1.1), c(400, 500, 600)))
+nugget <- c(0.3, 0.4, 0.5)
+clay_sel$poor_lmm <- fitREML(y = y, model = model, data = data, 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(clay_sel$poor_lmm)
+rm(model, breaks, nugget, tmp, ini.cov.pars)
 gc()
 
-# CLAY - base model ------------------------------------------------------------
-# create geodata object
-model     <- clay_base_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "clay"
-data.col  <- which(colnames(data) == data.col)
-clay_base_geodata <- as.geodata(data, coords.col = c(1, 2), data.col = data.col,
-                                covar.col = covar.col)
-summary(clay_base_geodata)
-rm(model, data, covar.col, data.col)
-# calculate empirical variogram
-geodata         <- clay_base_geodata
-trend           <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda          <- bc_lambda$clay
-breaks          <- seq(0, 6500, 100)
-clay_base_vario <- variog(geodata, trend = trend, lambda = lambda,
-                          breaks = breaks)
-plot(clay_base_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars  <- as.matrix(expand.grid(c(0.9, 1.0, 1.1), c(400, 500, 600)))
-nugget        <- c(0.3, 0.4, 0.5)
-clay_base_lmm <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                        nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(clay_base_lmm)
-rm(geodata, trend, lambda, nugget, covars, ini.cov.pars)
+## Base linear mixed model
+
+# Calculate and check the empirical variogram
+model <- clay_sel$base_lm
+breaks <- seq(0, 6500, 100)
+tmp <- fitVariog(y, model, data, lambda, breaks)
+plot(tmp, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.9, 1.0, 1.1), c(400, 500, 600)))
+nugget <- c(0.3, 0.4, 0.5)
+clay_sel$base_lmm <- fitREML(y = y, model = model, data = data, 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(clay_sel$base_lmm)
+rm(model, breaks, nugget, tmp, ini.cov.pars)
 gc()
 
-# CLAY - fine model ------------------------------------------------------------
-# create geodata object
-model     <- clay_sel$fine_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "clay"
-data.col  <- which(colnames(data) == data.col)
-clay_fine_geodata <- as.geodata(data, coords.col = c(1, 2), data.col = data.col,
-                                covar.col = covar.col)
-summary(clay_fine_geodata)
-rm(model, data, covar.col, data.col)
-# calculate empirical variogram
-geodata         <- clay_fine_geodata
-trend           <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda          <- bc_lambda$clay
-breaks          <- seq(0, 6500, 100)
-clay_fine_vario <- variog(geodata, trend = trend, lambda = lambda, 
-                          breaks = breaks)
-plot(clay_fine_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars  <- as.matrix(expand.grid(c(1.0, 1.1, 1.2), c(300, 400, 500)))
-nugget        <- c(0.1, 0.2, 0.3)
-clay_fine_lmm <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                        nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(clay_fine_lmm)
-rm(geodata, trend, covars, lambda, nugget, ini.cov.pars)
+## Fine linear mixed model
+
+# Calculate and check the empirical variogram
+model <- clay_sel$fine_lm
+breaks <- seq(0, 6500, 100)
+tmp <- fitVariog(y, model, data, lambda, breaks)
+plot(tmp, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(1.0, 1.1, 1.2), c(300, 400, 500)))
+nugget <- c(0.1, 0.2, 0.3)
+clay_sel$fine_lmm <- fitREML(y = y, model = model, data = data, 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(clay_sel$fine_lmm)
+rm(model, breaks, nugget, tmp, ini.cov.pars)
 gc()
 
-# CLAY - best model ------------------------------------------------------------
-# create geodata object
-model     <- clay_best_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "clay"
-data.col  <- which(colnames(data) == data.col)
-clay_best_geodata <- as.geodata(data, coords.col = c(1, 2), data.col = data.col,
-                                covar.col = covar.col)
-summary(clay_best_geodata)
-rm(model, data, covar.col, data.col)
-# calculate empirical variogram
-geodata         <- clay_best_geodata
-trend           <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda          <- bc_lambda$clay
-breaks          <- seq(0, 6500, 100)
-clay_best_vario <- variog(geodata, trend = trend, lambda = lambda, 
-                          breaks = breaks)
-plot(clay_best_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars  <- as.matrix(expand.grid(c(1.0, 1.1, 1.2), c(300, 400, 500)))
-nugget        <- c(0.1, 0.2, 0.3)
-clay_best_lmm <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                        nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(clay_best_lmm)
-rm(geodata, trend, covars, lambda, nugget, ini.cov.pars)
+## Best linear mixed model
+
+# Calculate and check the empirical variogram
+model <- clay_sel$best_lm
+breaks <- seq(0, 6500, 100)
+tmp <- fitVariog(y, model, data, lambda, breaks)
+plot(tmp, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(1.0, 1.1, 1.2), c(300, 400, 500)))
+nugget <- c(0.1, 0.2, 0.3)
+clay_sel$best_lmm <- fitREML(y = y, model = model, data = data, 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(clay_sel$best_lmm)
+rm(model, breaks, nugget, tmp, ini.cov.pars)
 gc()
+
+resave(clay_sel, file = paste(firstArticle_dir, "1stArticle.RData", sep = ""))
+
+
+
+
+
+
+
+
+
 
 # CLAY - plot experimental variograms and fitted linear mixed models -----------
 xlim <- c(0, 3000)
