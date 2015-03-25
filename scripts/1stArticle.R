@@ -1,4 +1,5 @@
-# DESCRIPTION ################################################################## Source code used to develop the first chapter (article) of my PhD research 
+# DESCRIPTION ################################################################## 
+# Source code used to develop the first chapter (article) of my PhD research 
 # project. The reference for the article is as follows:
 # Samuel-Rosa, A.; Heuvelink, G. B. M.; Vasques, G. M. & Anjos, L. H. C. Do more
 # detailed environmental covariates deliver more accurate soil maps?. Geoderma,
@@ -33,15 +34,10 @@ load(paste(rdata_dir, "sm-dnos-general.RData", sep = ""))
 #load("sm-dnos-phd-chap1.RData")
 #load("sm-dnos-phd-chap1-final-models.RData")
 data(R_pal)
-#data <- cal_data@data
-#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/stepVIF.R")
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/isAliased.R")
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/stepAliased.R")
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/whichAliased.R")
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/invBoxCox.R")
-#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/buildMS.R")
-#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/statsMS.R")
-# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/pkg/pedometrics/R/plotMS.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/looCV.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/krigeCV.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvKrigeCDF.R")
@@ -52,6 +48,16 @@ initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
           location = "dnos-sm-rs", mapset = "predictions",
           pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
+
+# USER DEFINED FUNCTIONS #######################################################
+
+# Convert pdf figures to png to reduce the article file size
+pdf2png <- 
+  function(file, density = 300, quality = 100) {
+    cmd <- paste("convert -density ", density, " ", file, ".pdf -quality ",
+                 quality, " ", file, ".png", sep = "")
+    lapply(cmd, system)
+  }
 
 # LOCATION OF THE STUDY AREA ###################################################
 
@@ -166,6 +172,7 @@ source("/home/lgcs-mds/alessandro/pedometrics/R/plotHD.R")
 
 # SOIL DATA - CLAY -------------------------------------------------------------
 vari <- cal_data$CLAY
+
 # Histogram with original variable
 xlab <- expression(paste('CLAY (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
@@ -183,7 +190,8 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-# histogram with transformed variable
+
+# Histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox CLAY (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
               scales = list(cex = c(1, 1)), lwd = c(0.001, 0.5))
@@ -198,19 +206,20 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-# transformation
+
+# Transformation
 lambda <- powerTransform(vari)$lambda
 bc_lambda$CLAY <- lambda
 cal_data$CLAY_BC <- bcPower(cal_data$CLAY, lambda)
 xyplot(CLAY_BC ~ CLAY, data = cal_data@data, xlab = "original scale",
        ylab = "Box-Cox transformed", main = "Clay content")
-dev.off()
 rm(vari, lambda)
 gc()
 
 # SOIL DATA - ORCA -------------------------------------------------------------
 vari <- cal_data$ORCA
-# histogram with original variable
+
+# Histogram with original variable
 xlab  <-  expression(paste('SOC (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
               col = c("lightgray", "black"), lty = "dashed",
@@ -227,7 +236,8 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-# histogram with transformed variable
+
+# Histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox SOC (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
               scales = list(cex = c(1, 1)), lwd = c(0.001, 0.5))
@@ -242,18 +252,19 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-# transformation
+
+# Transformation
 lambda <- 0
 bc_lambda$ORCA <- lambda
 cal_data$ORCA_BC <- bcPower(cal_data$ORCA, lambda)
 xyplot(ORCA_BC ~ ORCA, data = cal_data@data, xlab = "original scale",
        ylab = "Box-Cox transformed", main = "Carbon content")
-dev.off()
 rm(vari, lambda)
 gc()
 
 # SOIL DATA - ECEC -------------------------------------------------------------
 vari <- cal_data$ECEC
+
 # Histogram with original variable
 xlab  <-  expression(paste('ECEC (',mmol, ' ', kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
@@ -271,6 +282,7 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
+
 # Histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox ECEC (',mmol, ' ', kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
@@ -286,30 +298,24 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-# transformation
+
+# Transformation
 lambda <- 0
 bc_lambda$ECEC <- lambda
 cal_data$ECEC_BC <- bcPower(cal_data$ECEC, lambda)
 xyplot(ECEC_BC ~ ECEC, data = cal_data@data, xlab = "original scale",
        ylab = "Box-Cox transformed", main = "ECEC")
-dev.off()
 rm(vari, lambda)
 gc()
 
-# convert pdf figures to png
-pdf2png <- 
-  function(file, density = 300, quality = 100) {
-    cmd <- paste("convert -density ", density, " ", file, ".pdf -quality ",
-                 quality, " ", file, ".png", sep = "")
-    lapply(cmd, system)
-}
-
+# Convert pdf figures to png
 pdf_file <- paste(firstArticle_dir, "FIG2", letters[1:6], sep = "")
 pdf2png(pdf_file)
 
-# SETUP COVARIATE DATABASE #####################################################
+# COVARIATES ###################################################################
 
-# database 1
+# COVARIATES - Database 1 ------------------------------------------------------
+# These are the LESS detailed environmental covariates.
 soil1 <- c("SOIL_100b", "SOIL_100c",
            "SOIL_100d", "SOIL_100e", "SOIL_100f")
 soil1 <- paste(soil1, collapse = " + ")
@@ -330,7 +336,8 @@ dem1 <- c("ELEV_90", "SLP_90_3", "SLP_90_7", "SLP_90_15", "SLP_90_31",
           "SPI_90_255")
 dem1 <- paste(dem1, collapse = " + ")
 
-# database 2
+# COVARIATES - Database 2 ------------------------------------------------------
+# These are the MORE detailed environmental covariates.
 soil2 <- c("SOIL_25a", "SOIL_25b", "SOIL_25c", "SOIL_25d", 
            "SOIL_25h", "SOIL_25i", "SOIL_25j")
 soil2 <- paste(soil2, collapse = " + ")
@@ -351,13 +358,16 @@ dem2 <- c("ELEV_10", "SLP_10_3", "SLP_10_7", "SLP_10_15", "SLP_10_31",
           "SPI_10_255")
 dem2 <- paste(dem2, collapse = " + ")
 
-# Calibration Data - sample rasters --------------------------------------------
+# COVARIATES - Sample rasters --------------------------------------------------
+# Here we sample from the raster files at the calibration locations. We do it 
+# in GRASS because loading all rasters in R would consume all the memory 
+# available.
 system("g.region rast=dnos.raster")
 system("g.remove MASK")
 system("r.mask dnos.raster")
 
-# import calibration points into GRASS
-system("g.remove vect=calibration")
+# Import calibration points into GRASS
+system("g.remove vect=calibration") # run twice
 pts <- data.frame(coordinates(cal_data), cal_data$sampleid)
 coordinates(pts) <- ~ longitude + latitude
 proj4string(pts) <- wgs1984utm22s
@@ -365,7 +375,7 @@ colnames(pts@data) <- "sampleid"
 writeVECT6(pts, "calibration", v.in.ogr_flags = "overwrite")
 rm(pts)
 
-# setup database of calibration points
+# Setup database of calibration points
 system("v.info -c calibration")
 cols_int <- paste(soil1, land1, geo1, soil2, land2, geo2, sep = " + ")
 cols_int <- str_replace_all(cols_int, "[+]", "INT,")
@@ -379,10 +389,9 @@ system(cmd)
 system("v.info -c calibration")
 rm(cols_int, cols_double, cols)
 
-# sample rasters
-# We do it in GRASS because loading all rasters in R consumes all the memory
-maps <- paste(soil1, land1, geo1, soil2, land2, geo2, sat1, dem1, sat2, dem2,
-              sep = " + ")
+# Sample rasters
+maps <- paste(soil1, land1, geo1, soil2, land2, geo2, sat1, dem1, 
+              sat2, dem2, sep = " + ")
 maps <- str_replace_all(maps, "[ ]", "")
 maps <- c(unlist(str_split(maps, "[+]")))
 column <- maps
@@ -391,7 +400,7 @@ cmd <- paste("v.what.rast vect=calibration raster=", maps, " column=",
 lapply(cmd, system)
 rm(maps, column)
 
-# read calibration data
+# Read calibration data into R
 tmp <- readVECT6(vname = "calibration")
 str(tmp)
 tmp@data <- tmp@data[, - 1]
@@ -404,15 +413,16 @@ cal_data <- tmp
 str(cal_data)
 rm(tmp)
 
-# SETUP CANDIDATE MODELS #######################################################
+# CANDIDATE MODELS #############################################################
 
-# First, we create an object called 'combs' with all possible combinations of
+# CANDIDATE MODELS - Combinations ----------------------------------------------
+# We start creating an object called 'combs' with all possible combinations of
 # environmental covariates. The object is a list with two major items:
 # - 'main' has the identification of the environmental covariates;
 # - 'num' is used for plotting purposes.
-# The object also has to items used for a sensitivity analysis ('base' and 
-# 'fine'), This analysis shows the relative effect of excluding one 
-# environmental covariate at a time.
+# The object also has two items used for a sensitivity analysis ('base' and 
+# 'fine'). The sensitivity analysis shows the relative effect of excluding one 
+# environmental covariate at a time from the candidate models.
 combs <- list()
 combs$main <- expand.grid(c("soil1", "soil2"), c("land1", "land2"),
                           c("geo1", "geo2"), c("sat1", "sat2"),
@@ -429,8 +439,9 @@ for (i in 1:length(combs$main[[32]])) {
   combs$fine[[i]] <- combs$main[[32]][-i]
 }
 
+# CANDIDATE MODELS - Predictors ------------------------------------------------
 # Now we create a list with the predictor variables derived from the 
-# environmental covariates. 
+# environmental covariates.
 preds <- list()
 preds$main <- lapply(combs$main, function(X){parse(text = X)})
 preds$main <- lapply(preds$main, function(X){lapply(X, eval)})
@@ -445,9 +456,12 @@ preds$fine <- lapply(preds$fine, function(X){lapply(X, eval)})
 preds$fine <- lapply(preds$fine, function(X){
   paste(unlist(X), collapse = " + ")})
 
+# CANDIDATE MODELS - Formulas --------------------------------------------------
 # Now we use the lists created above to define a whole set of formulas that 
 # define the candidate models for each soil property. This is done for the 
-# sensitivity analysis too.
+# sensitivity analysis too. We set 'y' as the response variable for all 
+# formulas. Bellow, when we fit the models, we simply update the formulas using
+# the respective soil property.
 forms <- list()
 forms$main <- lapply("y", function(X){paste(X, " ~ ", preds$main)})
 forms$main <- lapply(unlist(forms$main), as.formula)
@@ -479,39 +493,41 @@ forms$fine <- lapply(unlist(forms$fine), as.formula)
 # forms$ECEC_fine <-
 #   lapply(unlist(forms$fine[which(forms$soil_attrs == "ECEC_BC")]), as.formula)
 
-# LINEAR MODEL FITTING #########################################################
+# LINEAR MODEL #################################################################
 # Here we fit linear models using ordinary least squares to model the 
-# deterministic component. We use several strategies to select the predictor 
-# variables so that we can evaluate the sensitivity of our results to the
-# chosen method. The methods are:
+# deterministic component of the spatial variation. We use several strategies 
+# to select the predictor variables so that we can evaluate the sensitivity of
+# our results to the chosen method. The methods are:
 # - use all predictors;
-# - selection using the VIF
-# - selection using the VIF and stepwise AIC
-# - selection using the VIV and forward AIC
-# - selection using the VIV and backward AIC
+# - selection using the VIF;
+# - selection using the VIF and stepwise AIC;
+# - selection using the VIV and forward AIC;
+# - selection using the VIV and backward AIC;
 # The final linear models are selected using the VIF and stepwise AIC.
 
-# CLAY -------------------------------------------------------------------------
+# LINEAR MODEL - CLAY ----------------------------------------------------------
 formula <- lapply(forms$main, update, CLAY_BC ~ .)
 data <- cal_data@data
 
-# build model series
+# Build linear model series
 clay_full <- buildMS(formula, data)
 clay_vif <- buildMS(formula, data, vif = TRUE)
 clay_both <- buildMS(formula, data, vif = TRUE, aic = TRUE)
-clay_forward <- buildMS(formula, data, vif = TRUE, aic = TRUE,
-                        aic.direction = "forward")
-clay_backward <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
-                         aic.direction = "backward")
+clay_for <- buildMS(formula, data, vif = TRUE, aic = TRUE,
+                    aic.direction = "forward")
+clay_back <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
+                     aic.direction = "backward")
 
-# get statistics of model series
+# Get the statistics of the linear model series
 clay_full_stats <- statsMS(clay_full, combs$num, "rmse")
 clay_vif_stats <- statsMS(clay_vif, combs$num, "rmse")
 clay_both_stats <- statsMS(clay_both, combs$num, "rmse")
-clay_forward_stats <- statsMS(clay_forward, combs$num, "rmse")
-clay_backward_stats <- statsMS(clay_backward, combs$num, "rmse")
+clay_for_stats <- statsMS(clay_for, combs$num, "rmse")
+clay_back_stats <- statsMS(clay_back, combs$num, "rmse")
 
-# plot and save all model series
+# Save all linear model series plots
+# This is to evaluate the behaviour of the results regarding the variable 
+# selection method.
 grid <- c(2:6)
 line <- "ADJ_r2"
 ind <- 2
@@ -520,23 +536,24 @@ a_plot <- plotMS(clay_full_stats, grid, line, ind, color = color,
                  main = "full model")
 b_plot <- plotMS(clay_vif_stats, grid, line, ind, color = color, 
                  main = "VIF selection")
-c_plot <- plotMS(clay_forward_stats, grid, line, ind, color = color, 
+c_plot <- plotMS(clay_for_stats, grid, line, ind, color = color, 
                  main = "forward selection")
-d_plot <- plotMS(clay_backward_stats, grid, line, ind, color = color, 
+d_plot <- plotMS(clay_back_stats, grid, line, ind, color = color, 
                  main = "backward selection")
 e_plot <- plotMS(clay_both_stats, grid, line, ind, color = color,
                  main = "stepwise selection")
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay_model_series_all.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "clay_model_series_plot.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
 dev.off()
 rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
 
-# MODEL SERIES PLOT - stepwise variable selection
+# Save the linear model series plot
+# We use the linear models calibrated using the stepwise variable selection
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay_models.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "FIG5a.pdf", sep = ""),
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -545,179 +562,174 @@ plotMS(clay_both_stats, grid = c(2:6), line = "ADJ_r2", ind = 2,
        color = c("lightyellow", "palegreen"),
        xlab = "CLAY model ranking", scales = list(cex = c(1, 1)))
 dev.off()
+pdf2png(paste(firstArticle_dir, "FIG5a", sep = ""))
 
-# check the effect of the number of observations (200, 300)
-data <- cal_data@data
-data <- data[sample(c(1:350), size = 200), ]
-tmp <- buildMS(forms_clay, data)
-tmp <- statsMS(tmp, combs$num, "rmse")
-grid <- c(2:6)
-line <- "ADJ_r2"
-ind  <- 2
-color <- c("lightyellow", "palegreen")
-plotMS(tmp, grid, line, ind, color = color)
-# get base and best models
+# Check the effect of the number of observations
+# We use three sample sizes (100, 200, and 300) and 50 iterations to calibrate
+# linear models with the whole set of predictor variables. The 50 model
+# series plots are used to produce an animated gif. The change observed in the
+# animated gif among the model series plots is used as an indicator of the
+# sensitivity of the results to the number of calibration observations.
+# Change 'n' to set a different sample size.
+n <- 300
+for (i in 1:50) {
+  data <- cal_data@data[sample(c(1:350), size = n), ]
+  tmp <- buildMS(formula, data)
+  tmp <- statsMS(tmp, combs$num, "rmse")
+  color <- c("lightyellow", "palegreen")
+  p <- plotMS(tmp, grid = c(2:6), line = "ADJ_r2", ind = 2, color = color)
+  jpeg(paste("/tmp/plot", i, ".jpg", sep = ""))
+  print(p)
+  dev.off()
+}
+system("convert /tmp/*.jpg -delay 10 -loop 1 /tmp/movie.gif")
+system("eog /tmp/movie.gif")
+
+# Get base and best models
 clay_sel <- list()
 clay_sel$poor_lm <- clay_both[head(clay_both_stats, 1)$id][[1]]
 clay_sel$base_lm <- clay_both[[1]]
 clay_sel$fine_lm <- clay_both[[32]]
 clay_sel$best_lm <- clay_both[tail(clay_both_stats, 1)$id][[1]]
 
-clay_base_lm <- clay_both[[1]]
-clay_best_lm <- rev(clay_both[tail(clay_both_stats, 1)$id])[[1]]
+#clay_base_lm <- clay_both[[1]]
+#clay_best_lm <- rev(clay_both[tail(clay_both_stats, 1)$id])[[1]]
 
-# CLAY - analysis of the residuals ---------------------------------------------
+# Analysis of the residuals
+
 # BASE MODEL
-data   <- cal_data
-model  <- clay_base_lm
-res    <- residuals(model)
-lambda <- bc_lambda$clay
-# residual plots
-dev.off()
-pdf(file = paste(firstArticle_dir, "clay_base_lm_res.pdf", sep = ""),
-    width = 7, height = 11)
-par(mfrow = c(3, 2))
+data <- cal_data
+model <- clay_sel$base_lm
+res <- residuals(model)
+lambda <- bc_lambda$CLAY
+x11()
+par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
-dev.off()
-# exploratory spatial data analysis
-dev.off()
-pdf(file = paste(firstArticle_dir, "clay_base_lm_esda.pdf", sep = ""))
 plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
-dev.off()
 
 # BEST MODEL
 data  <- cal_data
-model <- clay_best_lm
-res   <- residuals(model)
+model <- clay_sel$best_lm
+res <- residuals(model)
 lambda <- bc_lambda$clay
-# residual plots
-dev.off()
-pdf(file = paste(firstArticle_dir, "clay_best_lm_res.pdf", sep = ""),
-    width = 7, height = 11)
-par(mfrow = c(3, 2))
 plot(model, which = c(1:6))
-dev.off()
-# exploratory spatial data analysis
-dev.off()
-pdf(file = paste(firstArticle_dir, "clay_best_lm_esda.pdf", sep = ""))
-plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
-         cutoff = 1000, width = 1000/10)
+plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
 
-# CARBON -----------------------------------------------------------------------
+# LINEAR MODEL - ORCA ----------------------------------------------------------
 formula <- lapply(forms$main, update, ORCA_BC ~ .)
 data <- cal_data@data
 
-# fit using several strategies
-carbon_full <- buildMS(formula, data)
-carbon_vif <- buildMS(formula, data, vif = TRUE)
-carbon_both <- buildMS(formula, data, vif = TRUE, 
-                       aic = TRUE, aic.direction = "both")
-carbon_forward <- buildMS(formula, data, vif = TRUE, 
-                          aic = TRUE, aic.direction = "forward")
-carbon_backward <- buildMS(formula, data, vif = TRUE, 
-                           aic = TRUE, aic.direction = "backward")
+# Build linear model series
+orca_full <- buildMS(formula, data)
+orca_vif <- buildMS(formula, data, vif = TRUE)
+orca_both <- buildMS(formula, data, vif = TRUE, 
+                     aic = TRUE, aic.direction = "both")
+orca_for <- buildMS(formula, data, vif = TRUE, 
+                    aic = TRUE, aic.direction = "forward")
+orca_back <- buildMS(formula, data, vif = TRUE, 
+                     aic = TRUE, aic.direction = "backward")
 
-# get statistics of model series
-carbon_full_stats <- statsMS(carbon_full, combs$num, "rmse")
-carbon_vif_stats <- statsMS(carbon_vif, combs$num, "rmse")
-carbon_both_stats <- statsMS(carbon_both, combs$num, "rmse")
-carbon_forward_stats <- statsMS(carbon_forward, combs$num, "rmse")
-carbon_backward_stats <- statsMS(carbon_backward, combs$num, "rmse")
+# Get the statistics of the linear model series
+orca_full_stats <- statsMS(orca_full, combs$num, "rmse")
+orca_vif_stats <- statsMS(orca_vif, combs$num, "rmse")
+orca_both_stats <- statsMS(orca_both, combs$num, "rmse")
+orca_for_stats <- statsMS(orca_for, combs$num, "rmse")
+orca_back_stats <- statsMS(orca_back, combs$num, "rmse")
 
-# plot and save all model series
+# Save all linear model series plots
+# This is to evaluate the behaviour of the results regarding the variable 
+# selection method.
 grid <- c(2:6)
 line <- "ADJ_r2"
 ind  <- 2
 color <- c("lightyellow", "palegreen")
-a_plot <- plotMS(carbon_full_stats, grid, line, ind, color = color,
+a_plot <- plotMS(orca_full_stats, grid, line, ind, color = color,
                  main = "full model")
-b_plot <- plotMS(carbon_vif_stats, grid, line, ind, color = color, 
+b_plot <- plotMS(orca_vif_stats, grid, line, ind, color = color, 
                  main = "VIF selection")
-c_plot <- plotMS(carbon_forward_stats, grid, line, ind, color = color, 
+c_plot <- plotMS(orca_for_stats, grid, line, ind, color = color, 
                  main = "forward selection")
-d_plot <- plotMS(carbon_backward_stats, grid, line, ind, color = color, 
+d_plot <- plotMS(orca_back_stats, grid, line, ind, color = color, 
                  main = "backward selection")
-e_plot <- plotMS(carbon_both_stats, grid, line, ind, color = color, 
+e_plot <- plotMS(orca_both_stats, grid, line, ind, color = color, 
                  main = "stepwise selection")
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_model_series_all.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "orca_model_series_plot.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
 dev.off()
 rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
 gc()
-# MODEL SERIES PLOT - stepwise variable selection
+
+# Save the linear model series plot
+# We use the linear models calibrated using the stepwise variable selection
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_models.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "FIG5b.pdf", sep = ""),
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
-plotMS(carbon_both_stats, grid = c(2:6), line = "ADJ_r2", ind = 2, 
+plotMS(orca_both_stats, grid = c(2:6), line = "ADJ_r2", ind = 2, 
        color = c("lightyellow", "palegreen"),
        xlab = "SOC model ranking", scales = list(cex = c(1, 1)))
 dev.off()
-# check the effect of the number of observations (200, 300)
-data <- cal_data@data
-data <- data[sample(c(1:350), size = 300), ]
-tmp <- buildMS(forms$soc, data)
-tmp <- statsMS(tmp, combs$num, "rmse")
-grid <- c(2:6)
-line <- "ADJ_r2"
-ind  <- 2
-color <- c("lightyellow", "palegreen")
-plotMS(tmp, grid, line, ind, color = color)
-# get base and best models
-soc_sel <- list()
-soc_sel$poor_lm <- carbon_both[head(carbon_both_stats, 1)$id][[1]]
-soc_sel$base_lm <- carbon_both[[1]]
-soc_sel$fine_lm <- carbon_both[[32]]
-soc_sel$best_lm <- carbon_both[tail(carbon_both_stats, 1)$id][[1]]
+pdf2png(paste(firstArticle_dir, "FIG5b", sep = ""))
 
-carbon_base_lm <- carbon_both[[1]]
-carbon_best_lm <- rev(carbon_both[tail(carbon_both_stats, 1)$id])[[1]]
+# Check the effect of the number of observations
+# We use three sample sizes (100, 200, and 300) and 50 iterations to calibrate
+# linear models with the whole set of predictor variables. The 50 model
+# series plots are used to produce an animated gif. The change observed in the
+# animated gif among the model series plots is used as an indicator of the
+# sensitivity of the results to the number of calibration observations.
+# Change 'n' to set a different sample size.
+n <- 300
+for (i in 1:50) {
+  data <- cal_data@data[sample(c(1:350), size = n), ]
+  tmp <- buildMS(formula, data)
+  tmp <- statsMS(tmp, combs$num, "rmse")
+  color <- c("lightyellow", "palegreen")
+  p <- plotMS(tmp, grid = c(2:6), line = "ADJ_r2", ind = 2, color = color)
+  jpeg(paste("/tmp/plot", i, ".jpg", sep = ""))
+  print(p)
+  dev.off()
+}
+system("convert /tmp/*.jpg -delay 10 -loop 1 /tmp/movie.gif")
+system("eog /tmp/movie.gif")
 
-# CARBON - analysis of the residuals -------------------------------------------
+# Get base and best models
+orca_sel <- list()
+orca_sel$poor_lm <- orca_both[head(orca_both_stats, 1)$id][[1]]
+orca_sel$base_lm <- orca_both[[1]]
+orca_sel$fine_lm <- orca_both[[32]]
+orca_sel$best_lm <- orca_both[tail(orca_both_stats, 1)$id][[1]]
+# carbon_base_lm <- carbon_both[[1]]
+# carbon_best_lm <- rev(carbon_both[tail(carbon_both_stats, 1)$id])[[1]]
+
+# Analysis of the residuals
 
 # BASE MODEL
-data  <- cal_data
-model <- carbon_base_lm
-res   <- residuals(model)
-lambda <- bc_lambda$carbon
-# residual plots
-dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_base_lm_res.pdf", sep = ""),
-    width = 7, height = 11)
-par(mfrow = c(3, 2))
+data <- cal_data
+model <- orca_sel$base_lm
+res <- residuals(model)
+lambda <- bc_lambda$ORCA
+x11()
+par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
-dev.off()
-# exploratory spatial data analysis
-dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_base_lm_esda.pdf", sep = ""))
-plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
-         cutoff = 1000, width = 1000/10)
-dev.off()
+plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 
 # BEST MODEL
-data  <- cal_data
+data <- cal_data
 model <- carbon_best_lm
-res   <- residuals(model)
+res <- residuals(model)
 lambda <- bc_lambda$carbon
-# residual plots
-dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_best_lm_res.pdf", sep = ""),
-    width = 7, height = 11)
-par(mfrow = c(3, 2))
 plot(model, which = c(1:6))
+plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
-# exploratory spatial data analysis
-dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_best_lm_esda.pdf", sep = ""))
-plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
-         cutoff = 1000, width = 1000/10)
-dev.off()
+
+### THIS IS WHERE I STOPPED!!! ####
+
 
 # ECEC -------------------------------------------------------------------------
 formula <- lapply(forms$main, update, ECEC_BC ~ .)
