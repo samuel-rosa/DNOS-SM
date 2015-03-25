@@ -59,6 +59,22 @@ pdf2png <-
     lapply(cmd, system)
   }
 
+# Effect of dropping one environmental covariate
+deltaR2 <- 
+  function (a, b, cols = c("r2", "adj_r2", "ADJ_r2"), 
+            rows = c("soil", "land", "geo", "sat", "dem")) {
+    a <- a[, c("r2", "adj_r2", "ADJ_r2")]
+    b <- b[, c("r2", "adj_r2", "ADJ_r2")]
+    ab <- list()
+    for (i in 1:3){
+      ab[[i]] <- as.numeric(a)[i] - as.numeric(b[, i])
+    }
+    ab <- as.data.frame(ab)
+    colnames(ab) <- c("r2", "adj_r2", "ADJ_r2")
+    rownames(ab) <- rows
+    return (ab)
+  }
+
 # LOCATION OF THE STUDY AREA ###################################################
 
 # LOCATION - Brazil ------------------------------------------------------------
@@ -796,7 +812,7 @@ pdf2png(paste(firstArticle_dir, "FIG5c", sep = ""))
 # animated gif among the model series plots is used as an indicator of the
 # sensitivity of the results to the number of calibration observations.
 # Change 'n' to set a different sample size.
-n <- 300
+n <- 100
 for (i in 1:50) {
   data <- cal_data@data[sample(c(1:350), size = n), ]
   tmp <- buildMS(formula, data)
@@ -825,7 +841,6 @@ ecec_sel$best_lm <- ecec_both[tail(ecec_both_stats, 1)$id][[1]]
 data <- cal_data
 model <- ecec_sel$base_lm
 res <- residuals(model)
-lambda <- bc_lambda$ECEC
 x11()
 par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
@@ -835,74 +850,106 @@ plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 data <- cal_data
 model <- ecec_sel$best_lm
 res <- residuals(model)
-lambda <- bc_lambda$ECEC
 par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
 plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
+rm(model, res)
 
 # SENSITIVITY ANALYSIS #########################################################
 
 # Effect of dropping one environmental covariate -------------------------------
-deltaR2 <- 
-  function (a, b, cols = c("r2", "adj_r2", "ADJ_r2"), 
-            rows = c("soil", "land", "geo", "sat", "dem")) {
-    a <- a[, c("r2", "adj_r2", "ADJ_r2")]
-    b <- b[, c("r2", "adj_r2", "ADJ_r2")]
-    ab <- list()
-    for (i in 1:3){
-      ab[[i]] <- as.numeric(a)[i] - as.numeric(b[, i])
-    }
-    ab <- as.data.frame(ab)
-    colnames(ab) <- c("r2", "adj_r2", "ADJ_r2")
-    rownames(ab) <- rows
-    return (ab)
-  }
+data <- cal_data@data
 drop <- list()
+
 # clay
-drop$clay$base_lm <- buildMS(forms$clay_base, data, vif = TRUE, aic = TRUE)
-drop$clay$fine_lm <- buildMS(forms$clay_fine, data, vif = TRUE, aic = TRUE)
+formula <- lapply(forms$base, update, CLAY_BC ~ .)
+drop$clay$base_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
+rm(formula)
+formula <- lapply(forms$fine, update, CLAY_BC ~ .)
+drop$clay$fine_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
+rm(formula)
 drop$clay$base_r2 <- statsMS(drop$clay$base_lm)
 drop$clay$fine_r2 <- statsMS(drop$clay$fine_lm)
 drop$clay$base_dr2 <- deltaR2(clay_both_stats[clay_both_stats$id == 1, ],
                               drop$clay$base_r2)
 drop$clay$fine_dr2 <- deltaR2(clay_both_stats[clay_both_stats$id == 32, ],
                               drop$clay$fine_r2)
-# soc
-drop$soc$base_lm <- buildMS(forms$soc_base, data, vif = TRUE, aic = TRUE)
-drop$soc$fine_lm <- buildMS(forms$soc_fine, data, vif = TRUE, aic = TRUE)
-drop$soc$base_r2 <- statsMS(drop$soc$base_lm)
-drop$soc$fine_r2 <- statsMS(drop$soc$fine_lm)
-drop$soc$base_dr2 <- deltaR2(carbon_both_stats[carbon_both_stats$id == 1, ],
-                             drop$soc$base_r2)
-drop$soc$fine_dr2 <- deltaR2(carbon_both_stats[carbon_both_stats$id == 32, ],
-                             drop$soc$fine_r2)
+
+# orca
+formula <- lapply(forms$base, update, ORCA_BC ~ .)
+drop$orca$base_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
+rm(formula)
+formula <- lapply(forms$fine, update, ORCA_BC ~ .)
+drop$orca$fine_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
+rm(formula)
+drop$orca$base_r2 <- statsMS(drop$orca$base_lm)
+drop$orca$fine_r2 <- statsMS(drop$orca$fine_lm)
+drop$orca$base_dr2 <- deltaR2(orca_both_stats[orca_both_stats$id == 1, ],
+                              drop$orca$base_r2)
+drop$orca$fine_dr2 <- deltaR2(orca_both_stats[orca_both_stats$id == 32, ],
+                              drop$orca$fine_r2)
+
 # ecec
-drop$ecec$base_lm <- buildMS(forms$ecec_base, data, vif = TRUE, aic = TRUE)
-drop$ecec$fine_lm <- buildMS(forms$ecec_fine, data, vif = TRUE, aic = TRUE)
+formula <- lapply(forms$base, update, ECEC_BC ~ .)
+drop$ecec$base_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
+rm(formula)
+formula <- lapply(forms$fine, update, ECEC_BC ~ .)
+drop$ecec$fine_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
+rm(formula)
 drop$ecec$base_r2 <- statsMS(drop$ecec$base_lm)
 drop$ecec$fine_r2 <- statsMS(drop$ecec$fine_lm)
 drop$ecec$base_dr2 <- deltaR2(ecec_both_stats[ecec_both_stats$id == 1, ],
                               drop$ecec$base_r2)
 drop$ecec$fine_dr2 <- deltaR2(ecec_both_stats[ecec_both_stats$id == 32, ],
                               drop$ecec$fine_r2)
-# table
+rm(data)
+
+# Save LaTeX table
 EnvCov <- data.frame(drop$clay$base_dr2$ADJ_r2, drop$clay$fine_dr2$ADJ_r2,
-                     drop$soc$base_dr2$ADJ_r2, drop$soc$fine_dr2$ADJ_r2,
+                     drop$orca$base_dr2$ADJ_r2, drop$orca$fine_dr2$ADJ_r2,
                      drop$ecec$base_dr2$ADJ_r2, drop$ecec$fine_dr2$ADJ_r2)
 EnvCov <- round(EnvCov, 3)
 rownames(EnvCov) <- c("\\texttt{soil}", "\\texttt{land}",
                       "\\texttt{geo}", "\\texttt{sat}", "\\texttt{dem}")
 colnames(EnvCov) <- rep(c("less", "more"), 3)
-long_cap <- "Variation of the adjusted R$^2$ ($\\Delta$R$^2_{adj}$) when dropping one environmental covariate (EnvCov) in the models built using only the less accurate or the more accurate version of all environmental covariates."
-foot <- "* Environmental covariates (EnvCov): \\texttt{soil} - soil map, \\texttt{land} - land use map, \\texttt{geo} - geological map, \\texttt{sat} - satellite image, and \\texttt{dem} - digital elevation model. ** $\\Delta$R$^2_{adj} = R$^2_{adj}_{p=5} - R$^2_{adj}_{p=5-1}$."
-file <-  paste(firstArticle_dir, "drop-covars.tex", sep = "")
+long_cap <- "The importance of each environmental covariate$^a$ ($\\Delta{R}^{2}_{adj}{}^b$) in the models calibrated with their less and more spatially detailed version."
+foot <- "${}^a$ Covariate: \\texttt{soil} - soil map, \\texttt{land} - land use map, \\texttt{geo} - geologic map, \\texttt{sat} - satellite image, and \\texttt{dem} - digital elevation model. ${}^b$ $\\Delta{R}^{2}_{adj} = {R}^{2}_{adj}{}_{q=5} - R^{2}_{adj}{}_{q=5-1}$, where $q$ is the number of covariates included in the model. Negative values result from adjusting the $R^{2}$ using the number of predictor variables initially offered to enter the model instead of the reduced number of predictor variables that entered the model."
+file <-  paste(firstArticle_dir, "TAB4.tex", sep = "")
 latex(EnvCov, file = file, label = "tab:drop", table.env = TRUE, 
-      longtable = FALSE, cgroup = c("CLAY","SOC", "ECEC"), n.cgroup = c(2, 2, 2), 
-      na.blank = TRUE, ctable = TRUE, caption = long_cap, where = NULL,
-      size = "scriptsize", insert.bottom = foot, cgroupTexCmd = NULL,
-      rgroupTexCmd = NULL)
+      longtable = FALSE, cgroup = c("CLAY","SOC", "ECEC"), 
+      n.cgroup = c(2, 2, 2), na.blank = TRUE, ctable = TRUE, caption = long_cap,
+      where = "!h", insert.bottom = foot, 
+      cgroupTexCmd = NULL, rgroupTexCmd = NULL)
 rm(EnvCov, long_cap, foot, file)
+
+# Manually edit the tex file, replacing 'pos=!h,]' with 
+# 'pos=!h,doinside={\\scriptsize\\setstretch{1.1}}]'.
+edit(file = paste(firstArticle_dir, "TAB4.tex", sep = ""))
+
+# SAVE - LINEAR MODELS #########################################################
+save(bc_lambda, cal_data, clay_back, clay_back_stats, clay_both,
+     clay_both_stats, clay_for, clay_for_stats, clay_full, clay_full_stats, 
+     clay_sel, clay_vif, clay_vif_stats, combs, deltaR2, dem1, dem2, dem_dir, 
+     drop, ecec_back, ecec_back_stats, ecec_both, ecec_both_stats, ecec_for, 
+     ecec_for_stats, ecec_full, ecec_full_stats, ecec_sel, ecec_vif, 
+     ecec_vif_stats, forms, geo1, geo2, land1, land2, orca_back, 
+     orca_back_stats, orca_both, orca_both_stats, orca_for, orca_for_stats,
+     orca_full, orca_full_stats, orca_sel, orca_vif, orca_vif_stats, pdf2png,
+     preds, sat1, sat2, soil1, soil2, 
+     file = paste(firstArticle_dir, "linear-models.RData", sep = ""))
+
+
+
+
+
+
+
+
+
+
+
+
 
 # LINEAR MIXED MODEL FITTING ###################################################
 data <- as.data.frame(cal_data)
