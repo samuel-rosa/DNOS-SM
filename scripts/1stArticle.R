@@ -728,31 +728,30 @@ plot(model, which = c(1:6))
 plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
 
-### THIS IS WHERE I STOPPED!!! ####
-
-
-# ECEC -------------------------------------------------------------------------
+# LINEAR MODEL - ECEC ----------------------------------------------------------
 formula <- lapply(forms$main, update, ECEC_BC ~ .)
 data <- cal_data@data
 
-# fit using several strategies
+# Build linear model series
 ecec_full <- buildMS(formula, data)
 ecec_vif <- buildMS(formula, data, vif = TRUE)
 ecec_both <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
                      aic.direction = "both")
-ecec_forward <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
-                        aic.direction = "forward")
-ecec_backward <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
-                         aic.direction = "backward")
+ecec_for <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
+                    aic.direction = "forward")
+ecec_back <- buildMS(formula, data, vif = TRUE, aic = TRUE, 
+                     aic.direction = "backward")
 
-# get statistics of model series
+# Get the statistics of the linear model series
 ecec_full_stats <- statsMS(ecec_full, combs$num, "rmse")
 ecec_vif_stats <- statsMS(ecec_vif, combs$num, "rmse")
 ecec_both_stats <- statsMS(ecec_both, combs$num, "rmse")
-ecec_forward_stats <- statsMS(ecec_forward, combs$num, "rmse")
-ecec_backward_stats <- statsMS(ecec_backward, combs$num, "rmse")
+ecec_for_stats <- statsMS(ecec_for, combs$num, "rmse")
+ecec_back_stats <- statsMS(ecec_back, combs$num, "rmse")
 
-# plot and save all model series
+# Save all linear model series plots
+# This is to evaluate the behaviour of the results regarding the variable 
+# selection method.
 grid <- c(2:6)
 line <- "ADJ_r2"
 ind  <- 2
@@ -761,23 +760,25 @@ a_plot <- plotMS(ecec_full_stats, grid, line, ind, color = color,
                  main = "full model")
 b_plot <- plotMS(ecec_vif_stats, grid, line, ind, color = color, 
                  main = "VIF selection")
-c_plot <- plotMS(ecec_forward_stats, grid, line, ind, color = color, 
+c_plot <- plotMS(ecec_for_stats, grid, line, ind, color = color, 
                  main = "forward selection")
-d_plot <- plotMS(ecec_backward_stats, grid, line, ind, color = color, 
+d_plot <- plotMS(ecec_back_stats, grid, line, ind, color = color, 
                  main = "backward selection")
 e_plot <- plotMS(ecec_both_stats, grid, line, ind, color = color, 
                  main = "stepwise selection")
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_model_series_all.pdf", sep = ""),
+pdf(file = paste(firstArticle_dir, "ecec_model_series_plot.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
 dev.off()
 rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
 gc()
-# MODEL SERIES PLOT - stepwise variable selection
+
+# Save the linear model series plot
+# We use the linear models calibrated using the stepwise variable selection
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_models.pdf", sep = ""), 
+pdf(file = paste(firstArticle_dir, "FIG5c.pdf", sep = ""), 
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -786,64 +787,58 @@ plotMS(ecec_both_stats, grid = c(2:6), line = "ADJ_r2", ind = 2,
        color = c("lightyellow", "palegreen"),
        xlab = "ECEC model ranking", scales = list(cex = c(1, 1)))
 dev.off()
-# check the effect of the number of observations (200, 300)
-data <- cal_data@data
-data <- data[sample(c(1:350), size = 200), ]
-tmp <- buildMS(forms_clay, data)
-tmp <- statsMS(tmp, combs$num, "rmse")
-grid <- c(2:6)
-line <- "ADJ_r2"
-ind  <- 2
-color <- c("lightyellow", "palegreen")
-plotMS(tmp, grid, line, ind, color = color)
-# get base and best models
+pdf2png(paste(firstArticle_dir, "FIG5c", sep = ""))
+
+# Check the effect of the number of observations
+# We use three sample sizes (100, 200, and 300) and 50 iterations to calibrate
+# linear models with the whole set of predictor variables. The 50 model
+# series plots are used to produce an animated gif. The change observed in the
+# animated gif among the model series plots is used as an indicator of the
+# sensitivity of the results to the number of calibration observations.
+# Change 'n' to set a different sample size.
+n <- 300
+for (i in 1:50) {
+  data <- cal_data@data[sample(c(1:350), size = n), ]
+  tmp <- buildMS(formula, data)
+  tmp <- statsMS(tmp, combs$num, "rmse")
+  color <- c("lightyellow", "palegreen")
+  p <- plotMS(tmp, grid = c(2:6), line = "ADJ_r2", ind = 2, color = color)
+  jpeg(paste("/tmp/plot", i, ".jpg", sep = ""))
+  print(p)
+  dev.off()
+}
+system("convert /tmp/*.jpg -delay 10 -loop 1 /tmp/movie.gif")
+system("eog /tmp/movie.gif")
+
+# Get base and best models
 ecec_sel <- list()
 ecec_sel$poor_lm <- ecec_both[head(ecec_both_stats, 1)$id][[1]]
 ecec_sel$base_lm <- ecec_both[[1]]
 ecec_sel$fine_lm <- ecec_both[[32]]
 ecec_sel$best_lm <- ecec_both[tail(ecec_both_stats, 1)$id][[1]]
+# ecec_base_lm <- ecec_both[[1]]
+# ecec_best_lm <- rev(ecec_both[tail(ecec_both_stats, 1)$id])[[1]]
 
-ecec_base_lm <- ecec_both[[1]]
-ecec_best_lm <- rev(ecec_both[tail(ecec_both_stats, 1)$id])[[1]]
-
-# ECEC - analysis of the residuals ---------------------------------------------
+# Analysis of the residuals
 
 # BASE MODEL
-data   <- cal_data
-model  <- ecec_base_lm
-res    <- residuals(model)
-lambda <- bc_lambda$ecec
-# residual plots
-dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_base_lm_res.pdf", sep = ""),
-    width = 7, height = 11)
-par(mfrow = c(3, 2))
+data <- cal_data
+model <- ecec_sel$base_lm
+res <- residuals(model)
+lambda <- bc_lambda$ECEC
+x11()
+par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
-dev.off()
-# exploratory spatial data analysis
-dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_base_lm_esda.pdf", sep = ""))
-plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
-         cutoff = 1000, width = 1000/10)
-dev.off()
+plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 
 # BEST MODEL
-data  <- cal_data
-model <- ecec_best_lm
-res   <- residuals(model)
-lambda <- bc_lambda$ecec
-# residual plots
-dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_best_lm_res.pdf", sep = ""),
-    width = 7, height = 11)
-par(mfrow = c(3, 2))
+data <- cal_data
+model <- ecec_sel$best_lm
+res <- residuals(model)
+lambda <- bc_lambda$ECEC
+par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
-dev.off()
-# exploratory spatial data analysis
-dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_best_lm_esda.pdf", sep = ""))
-plotESDA(res, coordinates(data)[, 1], coordinates(data)[, 2],
-         cutoff = 1000, width = 1000/10)
+plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
 
 # SENSITIVITY ANALYSIS #########################################################
