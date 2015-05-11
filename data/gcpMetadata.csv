@@ -1,0 +1,8 @@
+"var"	"description"
+"id"	"identification number"
+"x"	"x coordinate"
+"y"	"y coordinate"
+"z"	"z coordinate - elevation"
+"date"	"date of recording"
+"source"	"source of the data"
+"epsg"	"coordinate reference system code"
