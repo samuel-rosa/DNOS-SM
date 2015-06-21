@@ -1,6 +1,5 @@
-# DESCRIPTION ################################################################## 
-# Source code used to develop the first chapter (article) of my PhD research 
-# project. The reference for the article is as follows:
+# DESCRIPTION ################################################################## # Source code used to develop the first article of my PhD research project. The
+# reference for the article is as follows:
 # Samuel-Rosa, A.; Heuvelink, G. B. M.; Vasques, G. M. & Anjos, L. H. C. Do more
 # detailed environmental covariates deliver more accurate soil maps?. Geoderma,
 # v. 243-244, p. 214-227, 2015. doi:10.1016/j.geoderma.2014.12.017
@@ -8,32 +7,32 @@
 # SETTINGS #####################################################################
 rm(list = ls())
 gc()
-library(rgdal)
+require(rgdal)
 require(spgrass6)
 require(raster)
 require(gstat)
-library(geoR)
+require(geoR)
 require(rgeos)
-library(pedometrics)
+require(pedometrics)
 require(car)
 require(caret)
 require(MASS)
-library(lattice)
-library(latticeExtra)
-library(grid)
-library(gridExtra)
+require(lattice)
+require(latticeExtra)
+require(grid)
+require(gridExtra)
 require(xtable)
-library(Hmisc)
-library(plotKML)
+require(Hmisc)
+require(plotKML)
 require(stringr)
 require(plyr)
 require(pbapply)
-library(mail)
-rdata_dir <- path.expand("~/Dropbox/dnos-sm-rs/rdata/")
-load(paste(rdata_dir, "sm-dnos-general.RData", sep = ""))
+require(mail)
+data(R_pal)
+rdata_dir <- path.expand("~/projects/dnos-sm-rs/data/R/")
+load(paste(rdata_dir, "general.RData", sep = ""))
 #load("sm-dnos-phd-chap1.RData")
 #load("sm-dnos-phd-chap1-final-models.RData")
-data(R_pal)
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/isAliased.R")
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/stepAliased.R")
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/whichAliased.R")
@@ -45,7 +44,7 @@ data(R_pal)
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/spredict.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/linesREML.R")
 initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
-          location = "dnos-sm-rs", mapset = "predictions",
+          location = "dnos-sm-rs", mapset = "predictions", 
           pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
 
