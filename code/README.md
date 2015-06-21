@@ -6,6 +6,5 @@ It is structured as follows:
 
     dnos-sm-rs
     |- code/
-    |  |- R/
-    |  +- README.md
+    |  +- R/   # R source code
     
