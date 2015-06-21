@@ -83,7 +83,7 @@ rm(tmp)
 
 # # Create GRASS GIS DBASE structure -------------------------------------------
 dbGRASS <- path.expand("~/dbGRASS")
-initGRASS(gisBase = "/usr/lib/grass70/", gisDbase = dbGRASS,
+initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
           location = "dnos-sm-rs", mapset = "predictions", pid = Sys.getpid())
 writeRAST6(dnos_raster, "dnos.raster")
 system("g.region rast=dnos.raster")
