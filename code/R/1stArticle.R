@@ -45,7 +45,7 @@ cal_data <- read.table(cal_data, sep = ";", head = TRUE, dec = ".",
                        na.strings = "na")
 colnames(cal_data)
 str(cal_data)
-id <- c("longitude", "latitude", "CLAY", "ORCA", "ECEC")
+id <- c("sampleid", "longitude", "latitude", "CLAY", "ORCA", "ECEC")
 id <- match(id, colnames(cal_data))
 cal_data <- cal_data[1:350, id]
 str(cal_data)
@@ -79,7 +79,9 @@ gmeta6()
 
 # USER DEFINED FUNCTIONS #######################################################
 
-# Convert pdf figures to png to reduce the article file size
+# Convert pdf figures to png
+# This is to reduce the size of the document submitted to the review process.
+# The published document is prepared with the high-quality pdf images.
 pdf2png <- 
   function(file, density = 300, quality = 100) {
     cmd <- paste("convert -density ", density, " ", file, ".pdf -quality ",
@@ -139,20 +141,12 @@ fitREML <-
     return (res)
   }
 
-# Update an existing RData file
-# Source: http://stackoverflow.com/questions/11813096
-resave <-
-  function(..., list = character(), file) {
-    previous  <- load(file)
-    var.names <- c(list, as.character(substitute(list(...)))[-1L])
-    for (var in var.names) {
-      assign(var, get(var, envir = parent.frame()))
-    }
-    save(list = unique(c(previous, var.names)), file = file)
-}
 # LOCATION OF THE STUDY AREA ###################################################
 
-# LOCATION - Brazil ------------------------------------------------------------
+# Location of the study area in the Brazilian territory ------------------------
+# This is the first figure of the article (FIG1a). We indicate some of the
+# main Brazilian cities so that the reader can have a better picture of the 
+# location of the study area compared to the size of the Brazilian territory.
 brazil <- shapefile("~/dbGIS/dnos-sm-rs/brasil.shp")
 bb <- bbox(brazil)
 bb[1, 2] <- -34.7
@@ -202,7 +196,11 @@ dev.off()
 rm(brazil, bb, pts, rs, p)
 gc()
 
-# LOCATION - Calibration observations ------------------------------------------
+# Location of the calibration observations -------------------------------------
+# This is the second figure of the article (FIG1b). We show the spatial 
+# distribution of the calibration observations and of the drainage network. The
+# last is included so that the reader can have a better picture of the 
+# topography of the study area.
 pol <- readVECT6("buffer_BASIN_10")
 drain <- readVECT6("STREAM_10")
 drain <- gIntersection(drain, pol, byid = TRUE)
@@ -239,31 +237,20 @@ rm(pol, p, drain)
 gc()
 
 # convert pdf figures to png
-pdf_file <- paste(firstArticle_dir, "FIG1", letters[1:2], sep = "")
+pdf_file <- paste(fig_dir, "FIG1", letters[1:2], sep = "")
 pdf2png(pdf_file)
 rm(pdf_file)
 
-# SOIL DATA ####################################################################
-cal_data <- read.table("data/labData.csv", dec = ".", head = TRUE, sep = ";",
-                       stringsAsFactors = FALSE, na.strings = "na")
-head(cal_data)
-cal_data <- cal_data[0:350, c("sampleid", "longitude", "latitude", "CLAY",
-                              "ORCA", "ECEC")]
-tail(cal_data)
-coordinates(cal_data) <- ~ longitude + latitude
-proj4string(cal_data) <- sirgas2000
-cal_data <- spTransform(cal_data, wgs1984utm22s)
-str(cal_data)
-plot(cal_data)
+# EXPLORATORY ANALYSIS #########################################################
+# We check the soil data empirical distribution. Because it is severely skewed, # we transform it using the family of Box-Cox power transformations to achieve
+# an empirical distribution closer to Gaussian. We also prepare histograms of
+# frequency with the original and transformed variable.
 
 # Box-Cox transformation
 bc_lambda <- list(CLAY = NA, ORCA = NA, ECEC = NA)
 
-source("/home/lgcs-mds/alessandro/pedometrics/R/plotHD.R")
-
-# SOIL DATA - CLAY -------------------------------------------------------------
+# EXPLORATORY ANALYSIS - CLAY --------------------------------------------------
 vari <- cal_data$CLAY
-
 # Histogram with original variable
 xlab <- expression(paste('CLAY (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
@@ -271,8 +258,8 @@ tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
               stats = FALSE, lwd = c(0.001, 0.5),
               scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG2a.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
+pdf(file = paste(fig_dir, "FIG2a.pdf", sep = ""), width = 6.3/cm(1), 
+    height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5), 
                 axis.line = list(lwd = 0.01),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -281,13 +268,12 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-
 # Histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox CLAY (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
               scales = list(cex = c(1, 1)), lwd = c(0.001, 0.5))
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG2d.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG2d.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 axis.line = list(lwd = 0.01),
@@ -297,7 +283,6 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-
 # Transformation
 lambda <- powerTransform(vari)$lambda
 bc_lambda$CLAY <- lambda
@@ -307,7 +292,7 @@ xyplot(CLAY_BC ~ CLAY, data = cal_data@data, xlab = "original scale",
 rm(vari, lambda)
 gc()
 
-# SOIL DATA - ORCA -------------------------------------------------------------
+# EXPLORATORY ANALYSIS - ORCA --------------------------------------------------
 vari <- cal_data$ORCA
 
 # Histogram with original variable
@@ -317,7 +302,7 @@ tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
               stats = FALSE, lwd = c(0.001, 0.5),
               scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG2b.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG2b.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 axis.line = list(lwd = 0.01),
@@ -327,13 +312,12 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-
 # Histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox SOC (g ',kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
               scales = list(cex = c(1, 1)), lwd = c(0.001, 0.5))
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG2e.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG2e.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 axis.line = list(lwd = 0.01),
@@ -343,7 +327,6 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-
 # Transformation
 lambda <- 0
 bc_lambda$ORCA <- lambda
@@ -353,9 +336,8 @@ xyplot(ORCA_BC ~ ORCA, data = cal_data@data, xlab = "original scale",
 rm(vari, lambda)
 gc()
 
-# SOIL DATA - ECEC -------------------------------------------------------------
+# EXPLORATORY ANALYSIS - ECEC --------------------------------------------------
 vari <- cal_data$ECEC
-
 # Histogram with original variable
 xlab  <-  expression(paste('ECEC (',mmol, ' ', kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
@@ -363,7 +345,7 @@ tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
               stats = FALSE, lwd = c(0.001, 0.5),
               scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG2c.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG2c.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 axis.line = list(lwd = 0.01),
@@ -373,13 +355,12 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-
 # Histogram with transformed variable
 xlab  <-  expression(paste('Box-Cox ECEC (',mmol, ' ', kg^-1,')', sep = ''))
 tmp <- plotHD(vari, HD = "over", xlab = xlab, BoxCox = TRUE, stats = FALSE,
               scales = list(cex = c(1, 1)), lwd = c(0.001, 0.5))
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG2f.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG2f.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 axis.line = list(lwd = 0.01),
@@ -389,7 +370,6 @@ print(tmp)
 dev.off()
 rm(tmp, xlab)
 gc()
-
 # Transformation
 lambda <- 0
 bc_lambda$ECEC <- lambda
@@ -400,10 +380,17 @@ rm(vari, lambda)
 gc()
 
 # Convert pdf figures to png
-pdf_file <- paste(firstArticle_dir, "FIG2", letters[1:6], sep = "")
+pdf_file <- paste(fig_dir, "FIG2", letters[1:6], sep = "")
 pdf2png(pdf_file)
+rm(pdf_file)
 
 # COVARIATES ###################################################################
+# We use two covariate databases that differ in their level of detail. Here we 
+# define the covariates included in each database, prepare the sample points
+# in the GRASS GIS database, and sample the raster files of each covariate 
+# which are also stored in the GRASS GIS database. We do all the processng steps
+# in GRASS GIS because loading all rasters in R would consume all the memory 
+# available.
 
 # COVARIATES - Database 1 ------------------------------------------------------
 # These are the LESS detailed environmental covariates.
@@ -450,9 +437,6 @@ dem2 <- c("ELEV_10", "SLP_10_3", "SLP_10_7", "SLP_10_15", "SLP_10_31",
 dem2 <- paste(dem2, collapse = " + ")
 
 # COVARIATES - Sample rasters --------------------------------------------------
-# Here we sample from the raster files at the calibration locations. We do it 
-# in GRASS because loading all rasters in R would consume all the memory 
-# available.
 system("g.region rast=dnos.raster")
 system("g.remove MASK")
 system("r.mask dnos.raster")
