@@ -33,13 +33,30 @@ require(plyr)
 require(pbapply)
 require(mail)
 
-# Load data
+# Load auxiliary data
 data(R_pal)
 r_data <- path.expand("~/projects/dnos-sm-rs/data/R/")
 load(paste(r_data, "general.RData", sep = ""))
+ls()
+
+# Load and check calibration data (1:350)
+cal_data <- paste(point_data, "labData.csv", sep = "")
+cal_data <- read.table(cal_data, sep = ";", head = TRUE, dec = ".", 
+                       na.strings = "na")
+colnames(cal_data)
+str(cal_data)
+id <- c("longitude", "latitude", "CLAY", "ORCA", "ECEC")
+id <- match(id, colnames(cal_data))
+cal_data <- cal_data[1:350, id]
+str(cal_data)
+coordinates(cal_data) <- ~ longitude + latitude
+proj4string(cal_data) <- sirgas2000
+cal_data <- spTransform(cal_data, wgs1984utm22s)
+plot(cal_data, pch = 20, cex = 0.5)
+
+# Set path to results (figures)
 fig_dir <- path.expand("~/projects/dnos-sm-rs/res/fig/1stArticle/")
-cal_data <- 
-  
+    
 #load("sm-dnos-phd-chap1.RData")
 #load("sm-dnos-phd-chap1-final-models.RData")
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/isAliased.R")
@@ -52,10 +69,13 @@ cal_data <-
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvStats.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/spredict.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/linesREML.R")
-initGRASS(gisBase = "/usr/lib/grass70/", gisDbase = dbGRASS,
+
+# Initiate GRASS GIS (64) section
+initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
           location = "dnos-sm-rs", mapset = "predictions", 
           pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
+gmeta6()
 
 # USER DEFINED FUNCTIONS #######################################################
 
