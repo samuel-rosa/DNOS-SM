@@ -5,8 +5,12 @@
 # v. 243-244, p. 214-227, 2015. doi:10.1016/j.geoderma.2014.12.017
 
 # SETTINGS #####################################################################
+
+# Clean workspace
 rm(list = ls())
 gc()
+
+# Load packages
 require(rgdal)
 require(spgrass6)
 require(raster)
@@ -28,9 +32,14 @@ require(stringr)
 require(plyr)
 require(pbapply)
 require(mail)
+
+# Load data
 data(R_pal)
-rdata_dir <- path.expand("~/projects/dnos-sm-rs/data/R/")
-load(paste(rdata_dir, "general.RData", sep = ""))
+r_data <- path.expand("~/projects/dnos-sm-rs/data/R/")
+load(paste(r_data, "general.RData", sep = ""))
+fig_dir <- path.expand("~/projects/dnos-sm-rs/res/fig/1stArticle/")
+cal_data <- 
+  
 #load("sm-dnos-phd-chap1.RData")
 #load("sm-dnos-phd-chap1-final-models.RData")
 #source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/isAliased.R")
@@ -43,7 +52,7 @@ load(paste(rdata_dir, "general.RData", sep = ""))
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvStats.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/spredict.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/linesREML.R")
-initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
+initGRASS(gisBase = "/usr/lib/grass70/", gisDbase = dbGRASS,
           location = "dnos-sm-rs", mapset = "predictions", 
           pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
@@ -166,7 +175,7 @@ p <- spplot(brazil, zcol = "UF_05", aspect = "iso", col = "gray",
 p
 # save image
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG1a.pdf", sep = ""), width = 9/cm(1),
+pdf(file = paste(fig_dir, "FIG1a.pdf", sep = ""), width = 9/cm(1),
     height = 9/cm(1))
 print(p)
 dev.off()
@@ -202,7 +211,7 @@ p <- spplot(pol, zcol = "cat", col = "gray", fill = "lightgray",
 p
 # save image
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG1b.pdf", sep = ""), width = 9/cm(1),
+pdf(file = paste(fig_dir, "FIG1b.pdf", sep = ""), width = 9/cm(1),
     height = 9/cm(1))
 print(p)
 dev.off()
