@@ -112,7 +112,8 @@ makeGeodata <-
     covars <- attr(terms(model), "term.labels")
     covar_col <- which(match(colnames(data), covars) != "NA")
     data_col  <- which(colnames(data) == y)
-    geod <- as.geodata(data, coords.col = c(1, 2),
+    coords.col <- c(ncol(data) - 1, ncol(data))
+    geod <- as.geodata(obj = data, coords.col = coords.col,
                        data.col = data_col, covar.col = covar_col)
     return (geod)
   }
@@ -134,7 +135,8 @@ fitREML <-
     covars <- attr(terms(model), "term.labels")
     covar_col <- which(match(colnames(data), covars) != "NA")
     data_col  <- which(colnames(data) == y)
-    geod <- as.geodata(data, coords.col = c(1, 2),
+    coords.col <- c(ncol(data) - 1, ncol(data))
+    geod <- as.geodata(data, coords.col = coords.col,
                        data.col = data_col, covar.col = covar_col)
     trend <- formula(paste("~", paste(covars, collapse = " + ")))
     res <- likfit(geodata = geod, trend = trend, ini.cov.pars = ini.cov.pars,
@@ -1011,41 +1013,48 @@ writeLines(tmp, file)
 rm(Covariate, long_cap, foot, file)
 
 # SAVE - LINEAR MODELS #########################################################
-save(bc_lambda, cal_data, clay_back, clay_back_stats, clay_both,
-     clay_both_stats, clay_for, clay_for_stats, clay_full, clay_full_stats, 
-     clay_sel, clay_vif, clay_vif_stats, combs, deltaR2, dem1, dem2, dem_dir, 
-     drop, ecec_back, ecec_back_stats, ecec_both, ecec_both_stats, ecec_for, 
-     ecec_for_stats, ecec_full, ecec_full_stats, ecec_sel, ecec_vif, 
-     ecec_vif_stats, forms, geo1, geo2, land1, land2, orca_back, 
-     orca_back_stats, orca_both, orca_both_stats, orca_for, orca_for_stats,
-     orca_full, orca_full_stats, orca_sel, orca_vif, orca_vif_stats, pdf2png,
-     preds, sat1, sat2, soil1, soil2, 
-     file = paste(firstArticle_dir, "1stArticle.RData", sep = ""))
+# save(bc_lambda, cal_data, clay_back, clay_back_stats, clay_both,
+#      clay_both_stats, clay_for, clay_for_stats, clay_full, clay_full_stats, 
+#      clay_sel, clay_vif, clay_vif_stats, combs, deltaR2, dem1, dem2, dem_dir, 
+#      drop, ecec_back, ecec_back_stats, ecec_both, ecec_both_stats, ecec_for, 
+#      ecec_for_stats, ecec_full, ecec_full_stats, ecec_sel, ecec_vif, 
+#      ecec_vif_stats, forms, geo1, geo2, land1, land2, orca_back, 
+#      orca_back_stats, orca_both, orca_both_stats, orca_for, orca_for_stats,
+#      orca_full, orca_full_stats, orca_sel, orca_vif, orca_vif_stats, pdf2png,
+#      preds, sat1, sat2, soil1, soil2, 
+#      file = paste(firstArticle_dir, "1stArticle.RData", sep = ""))
 
 # LINEAR MIXED MODEL ###########################################################
-data <- as.data.frame(cal_data)
+# We fit linear mixed models using the poor, base, fine, and best linear models
+# fitter above. The variogram model fit to the empirical variogram is saved to
+# compose the 6th figure of the article. Only the variograms of the base and 
+# best linear mixed models are used.
+clay_vario <- list()
+orca_vario <- list()
+ecec_vario <- list()
 
 # LINEAR MIXED MODEL - clay ----------------------------------------------------
-data <- as.data.frame(cal_data)
 y <- "CLAY"
 lambda <- bc_lambda$CLAY
 
 ## Poor linear mixed model
-
 # Calculate and check the empirical variogram
 model <- clay_sel$poor_lm
 breaks <- seq(0, 6500, 100)
-tmp <- fitVariog(y, model, data, lambda, breaks)
-plot(tmp, col = "blue", pch = 20, type = "b")
+clay_vario$poor <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(clay_vario$poor, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
 ini.cov.pars <- as.matrix(expand.grid(c(0.9, 1.0, 1.1), c(400, 500, 600)))
 nugget <- c(0.3, 0.4, 0.5)
-clay_sel$poor_lmm <- fitREML(y = y, model = model, data = data, 
+clay_sel$poor_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
                              ini.cov.pars = ini.cov.pars,
                              nugget = nugget, lambda = lambda)
 summary(clay_sel$poor_lmm)
-rm(model, breaks, nugget, tmp, ini.cov.pars)
+rm(model, breaks, nugget, ini.cov.pars)
 gc()
 
 ## Base linear mixed model
@@ -1053,17 +1062,20 @@ gc()
 # Calculate and check the empirical variogram
 model <- clay_sel$base_lm
 breaks <- seq(0, 6500, 100)
-tmp <- fitVariog(y, model, data, lambda, breaks)
-plot(tmp, col = "blue", pch = 20, type = "b")
+clay_vario$base <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(clay_vario$base, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
 ini.cov.pars <- as.matrix(expand.grid(c(0.9, 1.0, 1.1), c(400, 500, 600)))
 nugget <- c(0.3, 0.4, 0.5)
-clay_sel$base_lmm <- fitREML(y = y, model = model, data = data, 
+clay_sel$base_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
                              ini.cov.pars = ini.cov.pars,
                              nugget = nugget, lambda = lambda)
 summary(clay_sel$base_lmm)
-rm(model, breaks, nugget, tmp, ini.cov.pars)
+rm(model, breaks, nugget, ini.cov.pars)
 gc()
 
 ## Fine linear mixed model
@@ -1071,17 +1083,20 @@ gc()
 # Calculate and check the empirical variogram
 model <- clay_sel$fine_lm
 breaks <- seq(0, 6500, 100)
-tmp <- fitVariog(y, model, data, lambda, breaks)
-plot(tmp, col = "blue", pch = 20, type = "b")
+clay_vario$fine <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(clay_vario$fine, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
 ini.cov.pars <- as.matrix(expand.grid(c(1.0, 1.1, 1.2), c(300, 400, 500)))
 nugget <- c(0.1, 0.2, 0.3)
-clay_sel$fine_lmm <- fitREML(y = y, model = model, data = data, 
+clay_sel$fine_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
                              ini.cov.pars = ini.cov.pars,
                              nugget = nugget, lambda = lambda)
 summary(clay_sel$fine_lmm)
-rm(model, breaks, nugget, tmp, ini.cov.pars)
+rm(model, breaks, nugget, ini.cov.pars)
 gc()
 
 ## Best linear mixed model
@@ -1089,48 +1104,40 @@ gc()
 # Calculate and check the empirical variogram
 model <- clay_sel$best_lm
 breaks <- seq(0, 6500, 100)
-tmp <- fitVariog(y, model, data, lambda, breaks)
-plot(tmp, col = "blue", pch = 20, type = "b")
+clay_vario$best <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(clay_vario$best, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
 ini.cov.pars <- as.matrix(expand.grid(c(1.0, 1.1, 1.2), c(300, 400, 500)))
 nugget <- c(0.1, 0.2, 0.3)
-clay_sel$best_lmm <- fitREML(y = y, model = model, data = data, 
+clay_sel$best_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
                              ini.cov.pars = ini.cov.pars,
                              nugget = nugget, lambda = lambda)
 summary(clay_sel$best_lmm)
 rm(model, breaks, nugget, tmp, ini.cov.pars)
 gc()
 
-resave(clay_sel, file = paste(firstArticle_dir, "1stArticle.RData", sep = ""))
-
-
-
-
-
-
-
-
-
-
 # CLAY - plot experimental variograms and fitted linear mixed models -----------
 xlim <- c(0, 3000)
-ylim <- max(#clay_poor_vario$v[clay_poor_vario$u <= max(xlim)],
-            clay_base_vario$v[clay_base_vario$u <= max(xlim)],
-            #clay_fine_vario$v[clay_fine_vario$u <= max(xlim)],
-            clay_best_vario$v[clay_best_vario$u <= max(xlim)]) * 1.1
+ylim <- max(#clay_vario$poor$v[clay_vario$poor$u <= max(xlim)],
+            clay_vario$base$v[clay_vario$base$u <= max(xlim)],
+            #clay_vario$fine$v[clay_vario$fine$u <= max(xlim)],
+            clay_vario$best$v[clay_vario$best$u <= max(xlim)]) * 1.1
 ylim <- c(0, round(ylim, 1))
-#l1 <- linesREML(clay_poor_lmm, add = FALSE)
-l2 <- linesREML(clay_base_lmm, add = FALSE)
-#l3 <- linesREML(clay_fine_lmm, add = FALSE)
-l4 <- linesREML(clay_best_lmm, add = FALSE)
+#l1 <- linesREML(clay_sel$poor_lmm, add = FALSE)
+l2 <- linesREML(clay_sel$base_lmm, add = FALSE)
+#l3 <- linesREML(clay_sel$fine_lmm, add = FALSE)
+l4 <- linesREML(clay_sel$best_lmm, add = FALSE)
 # v1 <- xyplot(clay_poor_vario$v ~ clay_poor_vario$u, ylim = ylim, pch = 20,
 #              col =  "black", scales = list(tick.number = 8), xlim = xlim,
 #              panel = function(x, y, ...) {
 #                panel.xyplot(x, y, ...)
 #                panel.lines(x = l1$x, y = l1$y, lty = 2, col = "black")
 #              })
-clay_v2 <- xyplot(clay_base_vario$v ~ clay_base_vario$u, ylim = ylim, pch = 20,
+clay_v2 <- xyplot(clay_vario$base$v ~ clay_vario$base$u, ylim = ylim, pch = 20,
              scales = list(tick.number = 8), xlim = xlim, col =  "black",
              panel = function(x, y, ...) {
                panel.xyplot(x, y, ...)
@@ -1142,7 +1149,7 @@ clay_v2 <- xyplot(clay_base_vario$v ~ clay_base_vario$u, ylim = ylim, pch = 20,
 #                panel.xyplot(x, y, ...)
 #                panel.lines(x = l3$x, y = l3$y, lty = 2, col = "black")
 #              })
-clay_v4 <- xyplot(clay_best_vario$v ~ clay_best_vario$u, ylim = ylim, pch = 20,
+clay_v4 <- xyplot(clay_vario$best$v ~ clay_vario$best$u, ylim = ylim, pch = 20,
              scales = list(tick.number = 8), xlim = xlim, col =  "black", 
              panel = function(x, y, ...) {
                panel.xyplot(x, y, ...)
@@ -1155,356 +1162,309 @@ clay_v <- update(c(clay_v2, clay_v4), ylab = ylab, xlab = "Distance [m]",
                  asp = 1, scales = list(cex = c(1, 1)), layout = c(2, 1))
 # save plot
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay_lmm.pdf", sep = ""), 
+pdf(file = paste(fig_dir, "FIG6a.pdf", sep = ""), 
     width = 9/cm(1), height = 6/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(clay_v)
 dev.off()
-rm(xlim, ylim, l1, l2, l3, l4, clay_v1, clay_v2, clay_v3, clay_v4, clay_v)
+#rm(xlim, ylim, l1, l2, l3, l4, clay_v1, clay_v2, clay_v3, clay_v4, clay_v)
+rm(xlim, ylim, l2, l4, clay_v2, clay_v4, clay_v)
 gc()
 
-# CARBON - poor model ----------------------------------------------------------
-# create geodata object
-model     <- soc_sel$poor_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "carbon"
-data.col  <- which(colnames(data) == data.col)
-carbon_poor_geodata <- as.geodata(data, coords.col = c(1, 2), 
-                                  data.col = data.col, covar.col = covar.col)
-summary(carbon_poor_geodata)
-rm(data, model, covar.col, data.col)
-# calculate empirical variogram
-geodata           <- carbon_poor_geodata
-trend             <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda            <- bc_lambda$carbon
-breaks            <- seq(0, 6500, 100)
-carbon_poor_vario <- variog(geodata, trend = trend, lambda = lambda, 
-                            breaks = breaks)
-plot(carbon_poor_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars     <- as.matrix(expand.grid(c(0.12, 0.14, 0.16), c(500, 600, 700)))
-nugget           <- c(0.10, 0.12, 0.14)
-carbon_poor_lmm  <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                           nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(carbon_poor_lmm)
-rm(covars, geodata, trend, breaks, lambda, nugget, ini.cov.pars)
+# LINEAR MIXED MODEL - orca ----------------------------------------------------
+y <- "ORCA"
+lambda <- bc_lambda$ORCA
+
+## Poor linear mixed model
+# Calculate and check the empirical variogram
+model <- orca_sel$poor_lm
+breaks <- seq(0, 6500, 100)
+orca_vario$poor <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(orca_vario$poor, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.12, 0.14, 0.16), c(500, 600, 700)))
+nugget <- c(0.10, 0.12, 0.14)
+orca_sel$poor_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(orca_sel$poor_lmm)
+rm(model, breaks, nugget, ini.cov.pars)
 gc()
 
-# CARBON - base model ----------------------------------------------------------
-# create geodata object
-model     <- carbon_base_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "carbon"
-data.col  <- which(colnames(data) == data.col)
-carbon_base_geodata <- as.geodata(data, coords.col = c(1, 2), 
-                                  data.col = data.col, covar.col = covar.col)
-summary(carbon_base_geodata)
-rm(data, model, covar.col, data.col)
-# calculate empirical variogram
-geodata           <- carbon_base_geodata
-trend             <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda            <- bc_lambda$carbon
-breaks            <- seq(0, 6500, 100)
-carbon_base_vario <- variog(geodata, trend = trend, lambda = lambda, 
-                            breaks = breaks)
-plot(carbon_base_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars     <- as.matrix(expand.grid(c(0.12, 0.14, 0.16), c(500, 600, 700)))
-nugget           <- c(0.10, 0.12, 0.14)
-carbon_base_lmm  <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                           nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(carbon_base_lmm)
-rm(covars, geodata, trend, breaks, lambda, nugget, ini.cov.pars, breaks)
-gc()
-# CARBON - fine model ----------------------------------------------------------
-# create geodata object
-model     <- soc_sel$fine_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "carbon"
-data.col  <- which(colnames(data) == data.col)
-carbon_fine_geodata <- as.geodata(data, coords.col = c(1, 2), 
-                                  data.col = data.col, covar.col = covar.col)
-summary(carbon_fine_geodata)
-rm(data, model, covar.col, data.col)
-# calculate empirical variogram
-geodata           <- carbon_fine_geodata
-trend             <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda            <- bc_lambda$carbon
-breaks            <- seq(0, 6500, 100)
-carbon_fine_vario <- variog(geodata, trend = trend, lambda = lambda, 
-                            breaks = breaks)
-plot(carbon_fine_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars     <- as.matrix(expand.grid(c(0.12, 0.14, 0.16), c(500, 600, 700)))
-nugget           <- c(0.10, 0.12, 0.14)
-carbon_fine_lmm  <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                           nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(carbon_fine_lmm)
-rm(covars, geodata, trend, breaks, lambda, nugget, ini.cov.pars)
-gc()
-# CARBON - best model ----------------------------------------------------------
-# create geodata object
-model     <- carbon_best_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "carbon"
-data.col  <- which(colnames(data) == data.col)
-carbon_best_geodata <- as.geodata(data, coords.col = c(1, 2), 
-                                  data.col = data.col, covar.col = covar.col)
-summary(carbon_best_geodata)
-rm(data, model, covar.col, data.col)
-# calculate empirical variogram
-geodata           <- carbon_best_geodata
-trend             <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda            <- bc_lambda$carbon
-breaks            <- seq(0, 6500, 100)
-carbon_best_vario <- variog(geodata, trend = trend, lambda = lambda,
-                            breaks = breaks)
-plot(carbon_best_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars    <- as.matrix(expand.grid(c(0.10, 0.12, 0.14), c(400, 500, 600)))
-nugget          <- c(0.10, 0.12, 0.14)
-carbon_best_lmm <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                          nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(carbon_best_lmm)
-# clean workspace
-rm(covars, geodata, trend, breaks, lambda, nugget, ini.cov.pars)
+## Base linear mixed model
+
+# Calculate and check the empirical variogram
+model <- orca_sel$base_lm
+breaks <- seq(0, 6500, 100)
+orca_vario$base <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(orca_vario$base, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.12, 0.14, 0.16), c(500, 600, 700)))
+nugget <- c(0.10, 0.12, 0.14)
+orca_sel$base_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(orca_sel$base_lmm)
+rm(model, breaks, nugget, ini.cov.pars)
 gc()
 
-# CARBON - plot experimental variograms and fitted linear mixed models ---------
+## Fine linear mixed model
+
+# Calculate and check the empirical variogram
+model <- orca_sel$fine_lm
+breaks <- seq(0, 6500, 100)
+orca_vario$fine <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(orca_vario$fine, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.12, 0.14, 0.16), c(500, 600, 700)))
+nugget <- c(0.10, 0.12, 0.14)
+orca_sel$fine_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(orca_sel$fine_lmm)
+rm(model, breaks, nugget, ini.cov.pars)
+gc()
+
+## Best linear mixed model
+
+# Calculate and check the empirical variogram
+model <- orca_sel$best_lm
+breaks <- seq(0, 6500, 100)
+orca_vario$best <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(orca_vario$best, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.10, 0.12, 0.14), c(400, 500, 600)))
+nugget <- c(0.10, 0.12, 0.14)
+orca_sel$best_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(orca_sel$best_lmm)
+rm(model, breaks, nugget, tmp, ini.cov.pars)
+gc()
+
+# ORCA - plot experimental variograms and fitted linear mixed models -----------
 xlim <- c(0, 3000)
-ylim <- max(#carbon_poor_vario$v[carbon_poor_vario$u <= max(xlim)],
-            carbon_base_vario$v[carbon_base_vario$u <= max(xlim)],
-            #carbon_fine_vario$v[carbon_fine_vario$u <= max(xlim)],
-            carbon_best_vario$v[carbon_best_vario$u <= max(xlim)]) * 1.1
-ylim <- c(0, round(ylim, 2))
-# l1 <- linesREML(carbon_poor_lmm, add = FALSE)
-l2 <- linesREML(carbon_base_lmm, add = FALSE)
-# l3 <- linesREML(carbon_fine_lmm, add = FALSE)
-l4 <- linesREML(carbon_best_lmm, add = FALSE)
-# v1 <- xyplot(carbon_poor_vario$v ~ carbon_poor_vario$u, ylim = ylim, pch = 20,
+ylim <- max(#orca_vario$poor$v[orca_vario$poor$u <= max(xlim)],
+            orca_vario$base$v[orca_vario$base$u <= max(xlim)],
+            #orca_vario$fine$v[orca_vario$fine$u <= max(xlim)],
+            orca_vario$best$v[orca_vario$best$u <= max(xlim)]) * 1.1
+ylim <- c(0, round(ylim, 1))
+#l1 <- linesREML(orca_sel$poor_lmm, add = FALSE)
+l2 <- linesREML(orca_sel$base_lmm, add = FALSE)
+#l3 <- linesREML(orca_sel$fine_lmm, add = FALSE)
+l4 <- linesREML(orca_sel$best_lmm, add = FALSE)
+# v1 <- xyplot(orca_poor_vario$v ~ orca_poor_vario$u, ylim = ylim, pch = 20,
 #              col =  "black", scales = list(tick.number = 8), xlim = xlim,
 #              panel = function(x, y, ...) {
 #                panel.xyplot(x, y, ...)
-#                panel.lines(x = l1$x, y = l1$y, col = "black", lty = 2)
+#                panel.lines(x = l1$x, y = l1$y, lty = 2, col = "black")
 #              })
-soc_v2 <- xyplot(carbon_base_vario$v ~ carbon_base_vario$u, ylim = ylim, pch = 20,
-             col =  "black", scales = list(tick.number = 8), xlim = xlim,
-             panel = function(x, y, ...) {
-               panel.xyplot(x, y, ...)
-               panel.lines(x = l2$x, y = l2$y, col = "black", lty = 2)
-             })
-# soc_v3 <- xyplot(carbon_fine_vario$v ~ carbon_fine_vario$u, ylim = ylim, pch = 20,
+orca_v2 <- xyplot(orca_vario$base$v ~ orca_vario$base$u, ylim = ylim, pch = 20,
+                  scales = list(tick.number = 8), xlim = xlim, col =  "black",
+                  panel = function(x, y, ...) {
+                    panel.xyplot(x, y, ...)
+                    panel.lines(x = l2$x, y = l2$y, lty = 2, col = "black")
+                  })
+# v3 <- xyplot(orca_fine_vario$v ~ orca_fine_vario$u, ylim = ylim, pch = 20,
 #              col =  "black", scales = list(tick.number = 8), xlim = xlim,
 #              panel = function(x, y, ...) {
 #                panel.xyplot(x, y, ...)
-#                panel.lines(x = l3$x, y = l3$y, col = "black", lty = 2)
+#                panel.lines(x = l3$x, y = l3$y, lty = 2, col = "black")
 #              })
-soc_v4 <- xyplot(carbon_best_vario$v ~ carbon_best_vario$u, ylim = ylim, pch = 20,
-             col =  "black", scales = list(tick.number = 8), xlim = xlim,
-             panel = function(x, y, ...) {
-               panel.xyplot(x, y, ...)
-               panel.lines(x = l4$x, y = l4$y, col = "black", lty = 2)
-             })
+orca_v4 <- xyplot(orca_vario$best$v ~ orca_vario$best$u, ylim = ylim, pch = 20,
+                  scales = list(tick.number = 8), xlim = xlim, col =  "black", 
+                  panel = function(x, y, ...) {
+                    panel.xyplot(x, y, ...)
+                    panel.lines(x = l4$x, y = l4$y, lty = 2, col = "black")
+                  })
 ylab <- expression(paste("Semivariance [(g kg"^"-1", ")"^"2", "]", sep = ""))
-# soc_v <- update(c(v1, v2, v3, v4), ylab = ylab, layout = c(4, 1), 
-#             xlab = "Distance [m]", asp = 1, scales = list(cex = c(0.9, 0.9)))
-soc_v <- update(c(soc_v2, soc_v4), ylab = ylab, layout = c(2, 1), 
-            xlab = "Distance [m]", asp = 1, scales = list(cex = c(1, 1)))
+# v1 <- update(c(v1, v2, v3, v4), ylab = ylab, xlab = "Distance [m]", asp = 1,
+#             scales = list(cex = c(0.9, 0.9)), layout = c(4, 1))
+orca_v <- update(c(orca_v2, orca_v4), ylab = ylab, xlab = "Distance [m]", 
+                 asp = 1, scales = list(cex = c(1, 1)), layout = c(2, 1))
 # save plot
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_lmm.pdf", sep = ""), 
+pdf(file = paste(fig_dir, "FIG6b.pdf", sep = ""), 
     width = 9/cm(1), height = 6/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
-plot(soc_v)
+plot(orca_v)
 dev.off()
-rm(xlim, ylim, l1, l2, soc_v1, soc_v2, soc_v3, soc_v4, soc_v)
+#rm(xlim, ylim, l1, l2, l3, l4, orca_v1, orca_v2, orca_v3, orca_v4, orca_v)
+rm(xlim, ylim, l2, l4, orca_v2, orca_v4, orca_v)
 gc()
 
-# ECEC - poor model ------------------------------------------------------------
-# create geodata object
-model     <- ecec_sel$poor_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "ecec"
-data.col  <- which(colnames(data) == data.col)
-ecec_poor_geodata <- as.geodata(data, coords.col = c(1, 2), data.col = data.col,
-                                covar.col = covar.col)
-summary(ecec_poor_geodata)
-rm(model, data, covar.col, data.col)
-# calculate empirical variogram
-geodata         <- ecec_poor_geodata
-trend           <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda          <- bc_lambda$ecec
-breaks          <- seq(0, 6500, 100)
-ecec_poor_vario <- variog(geodata, trend = trend, breaks = breaks,
-                          lambda = lambda)
-plot(ecec_poor_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars   <- as.matrix(expand.grid(c(0.30, 0.32, 0.34), c(500, 600, 700)))
-nugget         <- c(0.20, 0.22, 0.24)
-ecec_poor_lmm  <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                         nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(ecec_poor_lmm)
-# clean workspace
-rm(covars, geodata, trend, breaks, lambda, nugget, ini.cov.pars)
+# LINEAR MIXED MODEL - ecec ----------------------------------------------------
+y <- "ECEC"
+lambda <- bc_lambda$ECEC
+
+## Poor linear mixed model
+# Calculate and check the empirical variogram
+model <- ecec_sel$poor_lm
+breaks <- seq(0, 6500, 100)
+ecec_vario$poor <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(ecec_vario$poor, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.30, 0.32, 0.34), c(500, 600, 700)))
+nugget <- c(0.20, 0.22, 0.24)
+ecec_sel$poor_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(ecec_sel$poor_lmm)
+rm(model, breaks, nugget, ini.cov.pars)
 gc()
 
-# ECEC - base model ------------------------------------------------------------
-# create geodata object
-model     <- ecec_base_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "ecec"
-data.col  <- which(colnames(data) == data.col)
-ecec_base_geodata <- as.geodata(data, coords.col = c(1, 2), data.col = data.col,
-                        covar.col = covar.col)
-summary(ecec_base_geodata)
-rm(model, data, covar.col, data.col)
-# calculate empirical variogram
-geodata         <- ecec_base_geodata
-trend           <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda          <- bc_lambda$ecec
-breaks          <- seq(0, 6500, 100)
-ecec_base_vario <- variog(geodata, trend = trend, breaks = breaks,
-                          lambda = lambda)
-plot(ecec_base_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars   <- as.matrix(expand.grid(c(0.30, 0.32, 0.34), c(500, 600, 700)))
-nugget         <- c(0.20, 0.22, 0.24)
-ecec_base_lmm  <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                         nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(ecec_base_lmm)
-# clean workspace
-rm(covars, geodata, trend, breaks, lambda, nugget, ini.cov.pars)
+## Base linear mixed model
+
+# Calculate and check the empirical variogram
+model <- ecec_sel$base_lm
+breaks <- seq(0, 6500, 100)
+ecec_vario$base <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(ecec_vario$base, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.30, 0.32, 0.34), c(500, 600, 700)))
+nugget <- c(0.20, 0.22, 0.24)
+ecec_sel$base_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(ecec_sel$base_lmm)
+rm(model, breaks, nugget, ini.cov.pars)
 gc()
 
-# ECEC - fine model ------------------------------------------------------------
-# create geodata object
-model     <- ecec_sel$fine_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "ecec"
-data.col  <- which(colnames(data) == data.col)
-ecec_fine_geodata <- as.geodata(data, coords.col = c(1, 2), data.col = data.col,
-                                covar.col = covar.col)
-summary(ecec_fine_geodata)
-rm(model, data, covar.col, data.col)
-gc()
-# calculate empirical variogram
-geodata         <- ecec_fine_geodata
-trend           <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda          <- bc_lambda$ecec
-breaks          <- seq(0, 6500, 100)
-ecec_fine_vario <- variog(geodata, trend = trend, lambda = lambda,
-                          breaks = breaks)
-plot(ecec_fine_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars  <- as.matrix(expand.grid(c(0.20, 0.24, 0.28), c(500, 600, 700)))
-nugget        <- c(0.16, 0.20, 0.24)
-ecec_fine_lmm <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                        nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(ecec_fine_lmm)
-# clean workspace
-rm(covars, geodata, trend, breaks, lambda, nugget, ini.cov.pars)
+## Fine linear mixed model
+
+# Calculate and check the empirical variogram
+model <- ecec_sel$fine_lm
+breaks <- seq(0, 6500, 100)
+ecec_vario$fine <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(ecec_vario$fine, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.20, 0.24, 0.28), c(500, 600, 700)))
+nugget <- c(0.16, 0.20, 0.24)
+ecec_sel$fine_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(ecec_sel$fine_lmm)
+rm(model, breaks, nugget, ini.cov.pars)
 gc()
 
-# ECEC - best model ------------------------------------------------------------
-# create geodata object
-model     <- ecec_best_lm
-data      <- as.data.frame(cal_data)
-covars    <- attr(terms(model), "term.labels")
-covar.col <- which(match(colnames(data), covars) != "NA")
-data.col  <- "ecec"
-data.col  <- which(colnames(data) == data.col)
-ecec_best_geodata <- as.geodata(data, coords.col = c(1, 2), data.col = data.col,
-                        covar.col = covar.col)
-summary(ecec_best_geodata)
-rm(model, data, covar.col, data.col)
-gc()
-# calculate empirical variogram
-geodata         <- ecec_best_geodata
-trend           <- formula(paste("~", paste(covars, collapse = " + ")))
-lambda          <- bc_lambda$ecec
-breaks          <- seq(0, 6500, 100)
-ecec_best_vario <- variog(geodata, trend = trend, lambda = lambda,
-                          breaks = breaks)
-plot(ecec_best_vario, col = "blue", pch = 20, type = "b")
-# estimate model parameters using REML
-ini.cov.pars  <- as.matrix(expand.grid(c(0.20, 0.24, 0.28), c(500, 600, 700)))
-nugget        <- c(0.16, 0.20, 0.24)
-ecec_best_lmm <- likfit(geodata, trend = trend, ini.cov.pars = ini.cov.pars,
-                        nugget = nugget, lambda = lambda, lik.method = "REML")
-summary(ecec_best_lmm)
-# clean workspace
-rm(covars, geodata, trend, breaks, lambda, nugget, ini.cov.pars)
+## Best linear mixed model
+
+# Calculate and check the empirical variogram
+model <- ecec_sel$best_lm
+breaks <- seq(0, 6500, 100)
+ecec_vario$best <- fitVariog(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             lambda = lambda, breaks = breaks)
+plot(ecec_vario$best, col = "blue", pch = 20, type = "b")
+
+# Estimate model parameters using REML
+ini.cov.pars <- as.matrix(expand.grid(c(0.20, 0.24, 0.28), c(500, 600, 700)))
+nugget <- c(0.16, 0.20, 0.24)
+ecec_sel$best_lmm <- fitREML(y = y, model = model, 
+                             data = as.data.frame(cal_data), 
+                             ini.cov.pars = ini.cov.pars,
+                             nugget = nugget, lambda = lambda)
+summary(ecec_sel$best_lmm)
+rm(model, breaks, nugget, tmp, ini.cov.pars)
 gc()
 
 # ECEC - plot experimental variograms and fitted linear mixed models -----------
 xlim <- c(0, 3000)
-ylim <- max(#ecec_poor_vario$v[ecec_poor_vario$u <= max(xlim)],
-            ecec_base_vario$v[ecec_base_vario$u <= max(xlim)],
-            #ecec_fine_vario$v[ecec_fine_vario$u <= max(xlim)],
-            ecec_best_vario$v[ecec_best_vario$u <= max(xlim)]) * 1.1
-ylim <- c(0, round(ylim, 2))
-#l1 <- linesREML(ecec_poor_lmm, add = FALSE)
-l2 <- linesREML(ecec_base_lmm, add = FALSE)
-#l3 <- linesREML(ecec_fine_lmm, add = FALSE)
-l4 <- linesREML(ecec_best_lmm, add = FALSE)
+ylim <- max(#ecec_vario$poor$v[ecec_vario$poor$u <= max(xlim)],
+  ecec_vario$base$v[ecec_vario$base$u <= max(xlim)],
+  #ecec_vario$fine$v[ecec_vario$fine$u <= max(xlim)],
+  ecec_vario$best$v[ecec_vario$best$u <= max(xlim)]) * 1.1
+ylim <- c(0, round(ylim, 1))
+#l1 <- linesREML(ecec_sel$poor_lmm, add = FALSE)
+l2 <- linesREML(ecec_sel$base_lmm, add = FALSE)
+#l3 <- linesREML(ecec_sel$fine_lmm, add = FALSE)
+l4 <- linesREML(ecec_sel$best_lmm, add = FALSE)
 # v1 <- xyplot(ecec_poor_vario$v ~ ecec_poor_vario$u, ylim = ylim, pch = 20,
 #              col =  "black", scales = list(tick.number = 8), xlim = xlim,
 #              panel = function(x, y, ...) {
 #                panel.xyplot(x, y, ...)
-#                panel.lines(x = l1$x, y = l1$y, col = "black", lty = 2)
+#                panel.lines(x = l1$x, y = l1$y, lty = 2, col = "black")
 #              })
-ecec_v2 <- xyplot(ecec_base_vario$v ~ ecec_base_vario$u, ylim = ylim, pch = 20,
-             col =  "black", scales = list(tick.number = 8), xlim = xlim,
-             panel = function(x, y, ...) {
-               panel.xyplot(x, y, ...)
-               panel.lines(x = l2$x, y = l2$y, col = "black", lty = 2)
-             })
+ecec_v2 <- xyplot(ecec_vario$base$v ~ ecec_vario$base$u, ylim = ylim, pch = 20,
+                  scales = list(tick.number = 8), xlim = xlim, col =  "black",
+                  panel = function(x, y, ...) {
+                    panel.xyplot(x, y, ...)
+                    panel.lines(x = l2$x, y = l2$y, lty = 2, col = "black")
+                  })
 # v3 <- xyplot(ecec_fine_vario$v ~ ecec_fine_vario$u, ylim = ylim, pch = 20,
 #              col =  "black", scales = list(tick.number = 8), xlim = xlim,
 #              panel = function(x, y, ...) {
 #                panel.xyplot(x, y, ...)
-#                panel.lines(x = l3$x, y = l3$y, col = "black", lty = 2)
+#                panel.lines(x = l3$x, y = l3$y, lty = 2, col = "black")
 #              })
-ecec_v4 <- xyplot(ecec_best_vario$v ~ ecec_best_vario$u, ylim = ylim, pch = 20,
-             col =  "black", scales = list(tick.number = 8), xlim = xlim,
-             panel = function(x, y, ...) {
-               panel.xyplot(x, y, ...)
-               panel.lines(x = l4$x, y = l4$y, col = "black", lty = 2)
-             })
+ecec_v4 <- xyplot(ecec_vario$best$v ~ ecec_vario$best$u, ylim = ylim, pch = 20,
+                  scales = list(tick.number = 8), xlim = xlim, col =  "black", 
+                  panel = function(x, y, ...) {
+                    panel.xyplot(x, y, ...)
+                    panel.lines(x = l4$x, y = l4$y, lty = 2, col = "black")
+                  })
 ylab <- expression(paste("Semivariance [(mmol kg"^"-1", ")"^"2", "]", sep = ""))
-# v3 <- update(c(v1, v2, v3, v4), ylab = ylab, xlab = "Distance [m]", asp = 1,
-#             layout = c(4, 1), scales = list(cex = c(0.9, 0.9)))
-ecec_v <- update(c(ecec_v2, ecec_v4), ylab = ylab, xlab = "Distance [m]", asp = 1,
-             layout = c(2, 1), scales = list(cex = c(1, 1)))
+# v1 <- update(c(v1, v2, v3, v4), ylab = ylab, xlab = "Distance [m]", asp = 1,
+#             scales = list(cex = c(0.9, 0.9)), layout = c(4, 1))
+ecec_v <- update(c(ecec_v2, ecec_v4), ylab = ylab, xlab = "Distance [m]", 
+                 asp = 1, scales = list(cex = c(1, 1)), layout = c(2, 1))
 # save plot
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_lmm.pdf", sep = ""), 
+pdf(file = paste(fig_dir, "FIG6c.pdf", sep = ""), 
     width = 9/cm(1), height = 6/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(ecec_v)
 dev.off()
-rm(xlim, ylim, l1, l2, l3, l4, ecec_v1, ecec_v2, ecec_v3, ecec_v4, ecec_v)
+#rm(xlim, ylim, l1, l2, l3, l4, ecec_v1, ecec_v2, ecec_v3, ecec_v4, ecec_v)
+rm(xlim, ylim, l2, l4, ecec_v2, ecec_v4, ecec_v)
 gc()
+
+# Convert pdf figures to png
+pdf_file <- paste(fig_dir, "FIG6", letters[1:3], sep = "")
+pdf2png(pdf_file)
+rm(pdf_file)
+
+
+
+
+
+
+
+
 
 # LEAVE-ONE-OUT CROSS-VALIDATION ###############################################
 # Start checking how many realizations are needed to stabilize the variance.
