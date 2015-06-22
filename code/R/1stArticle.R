@@ -54,8 +54,9 @@ proj4string(cal_data) <- sirgas2000
 cal_data <- spTransform(cal_data, wgs1984utm22s)
 plot(cal_data, pch = 20, cex = 0.5)
 
-# Set path to results (figures)
+# Set path to results (figures and tables)
 fig_dir <- path.expand("~/projects/dnos-sm-rs/res/fig/1stArticle/")
+tab_dir <- path.expand("~/projects/dnos-sm-rs/res/tab/1stArticle/")
     
 #load("sm-dnos-phd-chap1.RData")
 #load("sm-dnos-phd-chap1-final-models.RData")
@@ -926,6 +927,9 @@ dev.off()
 rm(model, res)
 
 # SENSITIVITY ANALYSIS #########################################################
+# We evaluate here the change (increase or decrease) of the importance of each
+# environmental covariate on explaining the variance when the more detailed
+# version was used.
 
 # Effect of dropping one environmental covariate -------------------------------
 data <- cal_data@data
@@ -975,31 +979,36 @@ drop$ecec$fine_dr2 <- deltaR2(ecec_both_stats[ecec_both_stats$id == 32, ],
 rm(data)
 
 # Save LaTeX table
-EnvCov <- data.frame(drop$clay$base_dr2$ADJ_r2, drop$clay$fine_dr2$ADJ_r2,
-                     drop$orca$base_dr2$ADJ_r2, drop$orca$fine_dr2$ADJ_r2,
-                     drop$ecec$base_dr2$ADJ_r2, drop$ecec$fine_dr2$ADJ_r2)
-EnvCov <- round(EnvCov, 3)
-rownames(EnvCov) <- c("\\texttt{soil}", "\\texttt{land}",
+Covariate <- data.frame(drop$clay$base_dr2$ADJ_r2, drop$clay$fine_dr2$ADJ_r2,
+                        drop$orca$base_dr2$ADJ_r2, drop$orca$fine_dr2$ADJ_r2,
+                        drop$ecec$base_dr2$ADJ_r2, drop$ecec$fine_dr2$ADJ_r2)
+Covariate <- round(Covariate, 3)
+rownames(Covariate) <- c("\\texttt{soil}", "\\texttt{land}",
                       "\\texttt{geo}", "\\texttt{sat}", "\\texttt{dem}")
-colnames(EnvCov) <- rep(c("less", "more"), 3)
-long_cap <- "The importance of each environmental covariate$^a$ ($\\Delta{R}^{2}_{adj}{}^b$) in the models calibrated with their less and more spatially detailed version."
-foot <- "${}^a$ Covariate: \\texttt{soil} - soil map, \\texttt{land} - land use map, \\texttt{geo} - geologic map, \\texttt{sat} - satellite image, and \\texttt{dem} - digital elevation model. ${}^b$ $\\Delta{R}^{2}_{adj} = {R}^{2}_{adj}{}_{q=5} - R^{2}_{adj}{}_{q=5-1}$, where $q$ is the number of covariates included in the model. Negative values result from adjusting the $R^{2}$ using the number of predictor variables initially offered to enter the model instead of the reduced number of predictor variables that entered the model."
-file <-  paste(firstArticle_dir, "TAB4.tex", sep = "")
-latex(EnvCov, file = file, label = "tab:drop", table.env = TRUE, 
-      longtable = FALSE, cgroup = c("CLAY","SOC", "ECEC"), 
+colnames(Covariate) <- rep(c("Less", "More"), 3)
+long_cap <- paste("The importance of each environmental covariate$^a$ ",
+                  "($\\Delta{R}^{2}_{adj}{}^b$) in the models calibrated ",
+                  "with their less and more spatially detailed version.",
+                  sep = "")
+foot <- paste("${}^a$ Covariate: \\texttt{soil} - soil map, \\texttt{land} - ",
+              "land use map, \\texttt{geo} - geologic map, \\texttt{sat} - ",
+              "satellite image, and \\texttt{dem} - digital elevation model.",
+              " ${}^b$ $\\Delta{R}^{2}_{adj} = {R}^{2}_{adj}{}_{q=5} - ",
+              "R^{2}_{adj}{}_{q=5-1}$, where $q$ is the number of covariates ",
+              "included in the model. Negative values result from adjusting ", 
+              "the $R^{2}$ using the number of predictor variables initially ",
+              "offered to enter the model instead of the reduced number of ",
+              "predictor variables that entered the model.", sep = "")
+file <- paste(tab_dir, "TAB4.tex", sep = "")
+latex(Covariate, file = file, label = "tab:drop", table.env = TRUE, 
+      longtable = FALSE, cgroup = c("CLAY","SOC", "ECEC"),
       n.cgroup = c(2, 2, 2), na.blank = TRUE, ctable = TRUE, caption = long_cap,
-      where = "!h", insert.bottom = foot, 
-      cgroupTexCmd = NULL, rgroupTexCmd = NULL)
-rm(EnvCov, long_cap, foot, file)
-
-# Manually edit the tex file, replacing 'pos=!h,]' with 
-# 'pos=!h,doinside={\\scriptsize\\setstretch{1.1}}]'.
-edit(file = paste(firstArticle_dir, "TAB4.tex", sep = ""))
-
-
-
-
-
+      where = "!h", insert.bottom = foot, rowlabel.just = "l", 
+      cgroup.just = "l", cgroupTexCmd = NULL, rgroupTexCmd = NULL)
+tmp <- readLines(file)
+tmp <- gsub("pos=!h,]", "pos=!h,doinside={\\scriptsize\\setstretch{1.1}}]", tmp)
+writeLines(tmp, file)
+rm(Covariate, long_cap, foot, file)
 
 # SAVE - LINEAR MODELS #########################################################
 save(bc_lambda, cal_data, clay_back, clay_back_stats, clay_both,
