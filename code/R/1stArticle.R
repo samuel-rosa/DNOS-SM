@@ -493,7 +493,7 @@ rm(tmp)
 # CANDIDATE MODELS - Combinations ----------------------------------------------
 # We start creating an object called 'combs' with all possible combinations of
 # environmental covariates. The object is a list with two major items:
-# - 'main' has the identification of the environmental covariates;
+# - 'main' has the identification of the covariates;
 # - 'num' is used for plotting purposes.
 # The object also has two items used for a sensitivity analysis ('base' and 
 # 'fine'). The sensitivity analysis shows the relative effect of excluding one 
@@ -513,6 +513,7 @@ combs$fine <- list()
 for (i in 1:length(combs$main[[32]])) {
   combs$fine[[i]] <- combs$main[[32]][-i]
 }
+str(combs, 1)
 
 # CANDIDATE MODELS - Predictors ------------------------------------------------
 # Now we create a list with the predictor variables derived from the 
@@ -530,6 +531,7 @@ preds$fine <- lapply(combs$fine, function(X){parse(text = X)})
 preds$fine <- lapply(preds$fine, function(X){lapply(X, eval)})
 preds$fine <- lapply(preds$fine, function(X){
   paste(unlist(X), collapse = " + ")})
+str(preds, 1)
 
 # CANDIDATE MODELS - Formulas --------------------------------------------------
 # Now we use the lists created above to define a whole set of formulas that 
@@ -544,6 +546,7 @@ forms$base <- lapply("y", function(X){paste(X, " ~ ", preds$base)})
 forms$base <- lapply(unlist(forms$base), as.formula)
 forms$fine <- lapply("y", function(X){paste(X, " ~ ", preds$fine)})
 forms$fine <- lapply(unlist(forms$fine), as.formula)
+str(forms, 1)
 
 # forms$soil_attrs <- c("CLAY_BC", "ORCA_BC", "ECEC_BC")
 # forms$main <- lapply(forms$soil_attrs, function(X){paste(X, " ~ ", preds$main)})
@@ -581,6 +584,8 @@ forms$fine <- lapply(unlist(forms$fine), as.formula)
 # The final linear models are selected using the VIF and stepwise AIC.
 
 # LINEAR MODEL - CLAY ----------------------------------------------------------
+
+# Update formulas
 formula <- lapply(forms$main, update, CLAY_BC ~ .)
 data <- cal_data@data
 
@@ -618,17 +623,17 @@ d_plot <- plotMS(clay_back_stats, grid, line, ind, color = color,
 e_plot <- plotMS(clay_both_stats, grid, line, ind, color = color,
                  main = "stepwise selection")
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay_model_series_plot.pdf", sep = ""),
+pdf(file = paste(fig_dir, "clay_model_series_plot.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
 dev.off()
 rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
 
-# Save the linear model series plot
+# Save the linear model series plot (pdf and png)
 # We use the linear models calibrated using the stepwise variable selection
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG5a.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG5a.pdf", sep = ""),
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -637,9 +642,10 @@ plotMS(clay_both_stats, grid = c(2:6), line = "ADJ_r2", ind = 2,
        color = c("lightyellow", "palegreen"),
        xlab = "CLAY model ranking", scales = list(cex = c(1, 1)))
 dev.off()
-pdf2png(paste(firstArticle_dir, "FIG5a", sep = ""))
+pdf2png(paste(fig_dir, "FIG5a", sep = ""))
 
 # Check the effect of the number of observations
+# This item has not been included in the published paper.
 # We use three sample sizes (100, 200, and 300) and 50 iterations to calibrate
 # linear models with the whole set of predictor variables. The 50 model
 # series plots are used to produce an animated gif. The change observed in the
@@ -677,7 +683,6 @@ data <- cal_data
 model <- clay_sel$base_lm
 res <- residuals(model)
 lambda <- bc_lambda$CLAY
-x11()
 par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
 plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
@@ -692,6 +697,8 @@ plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
 
 # LINEAR MODEL - ORCA ----------------------------------------------------------
+
+# Update formulas
 formula <- lapply(forms$main, update, ORCA_BC ~ .)
 data <- cal_data@data
 
@@ -730,7 +737,7 @@ d_plot <- plotMS(orca_back_stats, grid, line, ind, color = color,
 e_plot <- plotMS(orca_both_stats, grid, line, ind, color = color, 
                  main = "stepwise selection")
 dev.off()
-pdf(file = paste(firstArticle_dir, "orca_model_series_plot.pdf", sep = ""),
+pdf(file = paste(fig_dir, "orca_model_series_plot.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
@@ -738,10 +745,10 @@ dev.off()
 rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
 gc()
 
-# Save the linear model series plot
+# Save the linear model series plot (pdf and png)
 # We use the linear models calibrated using the stepwise variable selection
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG5b.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG5b.pdf", sep = ""),
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -750,9 +757,10 @@ plotMS(orca_both_stats, grid = c(2:6), line = "ADJ_r2", ind = 2,
        color = c("lightyellow", "palegreen"),
        xlab = "SOC model ranking", scales = list(cex = c(1, 1)))
 dev.off()
-pdf2png(paste(firstArticle_dir, "FIG5b", sep = ""))
+pdf2png(paste(fig_dir, "FIG5b", sep = ""))
 
 # Check the effect of the number of observations
+# This item has not been included in the published paper.
 # We use three sample sizes (100, 200, and 300) and 50 iterations to calibrate
 # linear models with the whole set of predictor variables. The 50 model
 # series plots are used to produce an animated gif. The change observed in the
@@ -779,6 +787,7 @@ orca_sel$poor_lm <- orca_both[head(orca_both_stats, 1)$id][[1]]
 orca_sel$base_lm <- orca_both[[1]]
 orca_sel$fine_lm <- orca_both[[32]]
 orca_sel$best_lm <- orca_both[tail(orca_both_stats, 1)$id][[1]]
+
 # carbon_base_lm <- carbon_both[[1]]
 # carbon_best_lm <- rev(carbon_both[tail(carbon_both_stats, 1)$id])[[1]]
 
@@ -789,14 +798,13 @@ data <- cal_data
 model <- orca_sel$base_lm
 res <- residuals(model)
 lambda <- bc_lambda$ORCA
-x11()
 par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
 plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 
 # BEST MODEL
 data <- cal_data
-model <- carbon_best_lm
+model <- orca_sel$best_lm
 res <- residuals(model)
 lambda <- bc_lambda$carbon
 plot(model, which = c(1:6))
@@ -804,6 +812,8 @@ plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
 
 # LINEAR MODEL - ECEC ----------------------------------------------------------
+
+# Update formulas
 formula <- lapply(forms$main, update, ECEC_BC ~ .)
 data <- cal_data@data
 
@@ -842,7 +852,7 @@ d_plot <- plotMS(ecec_back_stats, grid, line, ind, color = color,
 e_plot <- plotMS(ecec_both_stats, grid, line, ind, color = color, 
                  main = "stepwise selection")
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_model_series_plot.pdf", sep = ""),
+pdf(file = paste(fig_dir, "ecec_model_series_plot.pdf", sep = ""),
     width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
@@ -850,10 +860,10 @@ dev.off()
 rm(grid, line, ind, color, a_plot, b_plot, c_plot, d_plot, e_plot)
 gc()
 
-# Save the linear model series plot
+# Save the linear model series plot (pdf and png)
 # We use the linear models calibrated using the stepwise variable selection
 dev.off()
-pdf(file = paste(firstArticle_dir, "FIG5c.pdf", sep = ""), 
+pdf(file = paste(fig_dir, "FIG5c.pdf", sep = ""), 
     width = 19/cm(1), height = 8/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.widths = list(left.padding = 0, right.padding = 0), 
@@ -862,9 +872,10 @@ plotMS(ecec_both_stats, grid = c(2:6), line = "ADJ_r2", ind = 2,
        color = c("lightyellow", "palegreen"),
        xlab = "ECEC model ranking", scales = list(cex = c(1, 1)))
 dev.off()
-pdf2png(paste(firstArticle_dir, "FIG5c", sep = ""))
+pdf2png(paste(fig_dir, "FIG5c", sep = ""))
 
 # Check the effect of the number of observations
+# This item has not been included in the published paper.
 # We use three sample sizes (100, 200, and 300) and 50 iterations to calibrate
 # linear models with the whole set of predictor variables. The 50 model
 # series plots are used to produce an animated gif. The change observed in the
@@ -891,6 +902,7 @@ ecec_sel$poor_lm <- ecec_both[head(ecec_both_stats, 1)$id][[1]]
 ecec_sel$base_lm <- ecec_both[[1]]
 ecec_sel$fine_lm <- ecec_both[[32]]
 ecec_sel$best_lm <- ecec_both[tail(ecec_both_stats, 1)$id][[1]]
+
 # ecec_base_lm <- ecec_both[[1]]
 # ecec_best_lm <- rev(ecec_both[tail(ecec_both_stats, 1)$id])[[1]]
 
@@ -900,7 +912,6 @@ ecec_sel$best_lm <- ecec_both[tail(ecec_both_stats, 1)$id][[1]]
 data <- cal_data
 model <- ecec_sel$base_lm
 res <- residuals(model)
-x11()
 par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
 plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
@@ -909,7 +920,6 @@ plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 data <- cal_data
 model <- ecec_sel$best_lm
 res <- residuals(model)
-par(mfrow = c(2, 3))
 plot(model, which = c(1:6))
 plotESDA(res, lon = coordinates(data)[, 1], lat = coordinates(data)[, 2])
 dev.off()
@@ -985,6 +995,11 @@ rm(EnvCov, long_cap, foot, file)
 # Manually edit the tex file, replacing 'pos=!h,]' with 
 # 'pos=!h,doinside={\\scriptsize\\setstretch{1.1}}]'.
 edit(file = paste(firstArticle_dir, "TAB4.tex", sep = ""))
+
+
+
+
+
 
 # SAVE - LINEAR MODELS #########################################################
 save(bc_lambda, cal_data, clay_back, clay_back_stats, clay_both,
