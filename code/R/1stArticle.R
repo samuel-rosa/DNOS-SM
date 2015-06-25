@@ -1459,44 +1459,46 @@ pdf2png(pdf_file)
 rm(pdf_file)
 
 
+save(list = ls(), file = paste(r_data, "1stArticle.rda", sep = ""))
+load(file = paste(r_data, "1stArticle.rda", sep = ""))
 
-
-
-
-
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
 
 
 # LEAVE-ONE-OUT CROSS-VALIDATION ###############################################
-# Start checking how many realizations are needed to stabilize the variance.
-# Use the same number of realizations for all cases.
+
+# Check the needed number of realizations --------------------------------------
+# We start checking how many realizations are needed to stabilize the variance
+# when back-transforming the predictions from the Box-CoX space to the original
+# soil data space. We use the same number of realizations for all cases. For the
+# linear models we assume that the prediction error variance is estimated 
+# without bias. The results show that we should use at least 20,000 
+# realizations.
+
 # CLAY
-model           <- clay_base_lm
-lambda          <- bc_lambda$clay
-geodata         <- clay_base_geodata
-clay_base_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                         simul.back = FALSE)
-invBoxCox(mean = clay_base_lm_cv$pred, variance = c(clay_base_lm_cv$se.pred^2),
+model <- clay_sel$base_lm
+lambda <- bc_lambda$CLAY
+clay_sel$base_lm_cv <- looCV(model = model, simul.back = FALSE)
+invBoxCox(mean = clay_sel$base_lm_cv$pred, variance = clay_sel$base_lm_cv$pev,
           lambda = lambda, profile = TRUE, simul.back = TRUE)
-rm(model, lambda, geodata)
+rm(model, lambda)
+
 # SOC
-model             <- carbon_base_lm
-lambda            <- bc_lambda$carbon
-geodata           <- carbon_base_geodata
-carbon_base_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                         simul.back = FALSE)
-invBoxCox(mean = carbon_base_lm_cv$pred, 
-          variance = c(carbon_base_lm_cv$se.pred^2),
+model <- orca_sel$base_lm
+lambda <- bc_lambda$ORCA
+orca_sel$base_lm_cv <- looCV(model = model, simul.back = FALSE)
+invBoxCox(mean = orca_sel$base_lm_cv$pred, variance = orca_sel$base_lm_cv$pev,
           lambda = lambda, profile = TRUE, simul.back = TRUE)
-rm(model, lambda, geodata)
+rm(model, lambda)
+
 # ECEC
-model           <- ecec_base_lm
-lambda          <- bc_lambda$ecec
-geodata         <- ecec_base_geodata
-ecec_base_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                         simul.back = FALSE)
-invBoxCox(mean = ecec_base_lm_cv$pred, variance = c(ecec_base_lm_cv$se.pred^2),
+model <- ecec_sel$base_lm
+lambda <- bc_lambda$ECEC
+ecec_sel$base_lm_cv <- looCV(model = model, simul.back = FALSE)
+invBoxCox(mean = ecec_sel$base_lm_cv$pred, variance = ecec_sel$base_lm_cv$pev,
           lambda = lambda, profile = TRUE, simul.back = TRUE)
-rm(model, lambda, geodata)
+rm(model, lambda)
 
 # CLAY - base linear model -----------------------------------------------------
 model           <- clay_base_lm
