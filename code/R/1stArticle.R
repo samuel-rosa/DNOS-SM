@@ -1462,8 +1462,7 @@ rm(pdf_file)
 save(list = ls(), file = paste(r_data, "1stArticle.rda", sep = ""))
 load(file = paste(r_data, "1stArticle.rda", sep = ""))
 
-geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
-                      covar.col = colnames(model$model)[-1])
+
 
 
 # LEAVE-ONE-OUT CROSS-VALIDATION ###############################################
@@ -1501,94 +1500,112 @@ invBoxCox(mean = ecec_sel$base_lm_cv$pred, variance = ecec_sel$base_lm_cv$pev,
 rm(model, lambda)
 
 # CLAY - base linear model -----------------------------------------------------
-model           <- clay_base_lm
-lambda          <- bc_lambda$clay
-geodata         <- clay_base_geodata
-clay_base_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                         simul.back = TRUE, n.sim = 20000)
-rm(model, lambda, geodata)
+model <- clay_sel$base_lm
+lambda <- bc_lambda$CLAY
+clay_sel$base_lm_cv <- looCV(model = model, back = TRUE, lambda = lambda,
+                             original = cal_data$CLAY, simul.back = TRUE, 
+                             n.sim = 20000)
+rm(model, lambda)
 
 # CLAY - best linear model -----------------------------------------------------
-model           <- clay_best_lm
-lambda          <- bc_lambda$clay
-geodata         <- clay_best_geodata
-clay_best_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                         simul.back = TRUE, n.sim = 20000)
-rm(model, lambda, geodata)
+model <- clay_sel$best_lm
+lambda <- bc_lambda$CLAY
+clay_sel$best_lm_cv <- looCV(model = model, back = TRUE, lambda = lambda,
+                             original = cal_data$CLAY, simul.back = TRUE, 
+                             n.sim = 20000)
+rm(model, lambda)
 
 # CLAY - base linear mixed model -----------------------------------------------
-geodata          <- clay_base_geodata
-model            <- clay_base_lmm
-clay_base_lmm_cv <- cvKrige(geodata, model = model, reestimate = TRUE,
-                            output.reestimate = TRUE, n.sim = 20000)
+model <- clay_sel$base_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- clay_sel$base_lmm
+clay_sel$base_lmm_cv <- krigeCV(geodata = geodata, model = model, 
+                                reestimate = TRUE, output.reestimate = TRUE, 
+                                n.sim = 20000)
 rm(geodata, model)
 
 # CLAY - best linear mixed model -----------------------------------------------
-geodata          <- clay_best_geodata
-model            <- clay_best_lmm
-clay_best_lmm_cv <- cvKrige(geodata, model = model, reestimate = TRUE,
-                            output.reestimate = TRUE, n.sim = 20000)
+model <- clay_sel$best_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- clay_sel$best_lmm
+clay_sel$best_lmm_cv <- krigeCV(geodata = geodata, model = model, 
+                                reestimate = TRUE, output.reestimate = TRUE, 
+                                n.sim = 20000)
 rm(geodata, model)
 
 # CARBON - base linear model ---------------------------------------------------
-model             <- carbon_base_lm
-lambda            <- bc_lambda$carbon
-geodata           <- carbon_base_geodata
-carbon_base_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                           simul.back = TRUE, n.sim = 20000)
-rm(model, lambda, geodata)
+model <- orca_sel$base_lm
+lambda <- bc_lambda$ORCA
+orca_sel$base_lm_cv <- looCV(model = model, back = TRUE, simul.back = TRUE, 
+                             original = cal_data$ORCA, lambda = lambda, 
+                             n.sim = 20000)
+rm(model, lambda)
 
 # CARBON - best linear model ---------------------------------------------------
-model             <- carbon_best_lm
-lambda            <- bc_lambda$carbon
-geodata           <- carbon_best_geodata
-carbon_best_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                           simul.back = TRUE, n.sim = 20000)
-rm(model, lambda, geodata)
+model <- orca_sel$best_lm
+lambda <- bc_lambda$ORCA
+orca_sel$best_lm_cv <- looCV(model = model, back = TRUE, simul.back = TRUE, 
+                             original = cal_data$ORCA, lambda = lambda,
+                             n.sim = 20000)
+rm(model, lambda)
 
 # CARBON - base linear mixed model ---------------------------------------------
-geodata            <- carbon_base_geodata
-model              <- carbon_base_lmm
-carbon_base_lmm_cv <- cvKrige(geodata, model = model, reestimate = TRUE,
-                              output.reestimate = TRUE, n.sim = 20000)
+model <- orca_sel$base_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model<- orca_sel$base_lmm
+orca_sel$base_lmm_cv <- krigeCV(geodata = geodata, model = model, 
+                                reestimate = TRUE, output.reestimate = TRUE, 
+                                n.sim = 20000)
 rm(geodata, model)
 
 # CARBON - best linear mixed model ---------------------------------------------
-geodata            <- carbon_best_geodata
-model              <- carbon_best_lmm
-carbon_best_lmm_cv <- cvKrige(geodata, model = model, reestimate = TRUE,
-                              output.reestimate = TRUE, n.sim = 20000)
+model <- orca_sel$best_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model<- orca_sel$best_lmm
+orca_sel$best_lmm_cv <- krigeCV(geodata = geodata, model = model, 
+                                reestimate = TRUE, output.reestimate = TRUE, 
+                                n.sim = 20000)
 rm(geodata, model)
 
 # ECEC - base linear model -----------------------------------------------------
-model           <- ecec_base_lm
-lambda          <- bc_lambda$ecec
-geodata         <- ecec_base_geodata
-ecec_base_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                         simul.back = TRUE, n.sim = 20000)
-rm(model, lambda, geodata)
+model <- ecec_sel$base_lm
+lambda <- bc_lambda$ECEC
+ecec_sel$base_lm_cv <- looCV(model = model, back = TRUE, simul.back = TRUE, 
+                             original = cal_data$ECEC, lambda = lambda, 
+                             n.sim = 20000)
+rm(model, lambda)
 
 # ECEC - best linear model -----------------------------------------------------
-model           <- ecec_best_lm
-lambda          <- bc_lambda$ecec
-geodata         <- ecec_best_geodata
-ecec_best_lm_cv <- looCV(model, geodata = geodata, lambda = lambda, 
-                         simul.back = TRUE, n.sim = 20000)
-rm(model, lambda, geodata)
+model <- ecec_sel$best_lm
+lambda <- bc_lambda$ECEC
+ecec_sel$best_lm_cv <- looCV(model = model, back = TRUE, simul.back = TRUE, 
+                             lambda = lambda, original = cal_data$ECEC,
+                             n.sim = 20000)
+rm(model, lambda)
 
 # ECEC - base linear mixed model -----------------------------------------------
-geodata          <- ecec_base_geodata
-model            <- ecec_base_lmm
-ecec_base_lmm_cv <- cvKrige(geodata, model = model, reestimate = TRUE,
-                            output.reestimate = TRUE, n.sim = 20000)
+model <- ecec_sel$base_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- ecec_sel$base_lmm
+ecec_sel$base_lmm_cv <- krigeCV(model = model, geodata = geodata, back = TRUE,
+                                reestimate = TRUE, output.reestimate = TRUE, 
+                                n.sim = 20000)
 rm(geodata, model)
 gc()
 
 # ECEC - best linear mixed model -----------------------------------------------
-geodata          <- ecec_best_geodata
-model            <- ecec_best_lmm
-ecec_best_lmm_cv <- cvKrige(geodata, model = model, reestimate = TRUE,
-                            output.reestimate = TRUE, n.sim = 20000)
+model <- ecec_sel$best_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- ecec_sel$best_lmm
+ecec_sel$best_lmm_cv <- krigeCV(model = model, geodata = geodata, back = TRUE,
+                                reestimate = TRUE, output.reestimate = TRUE, 
+                                n.sim = 20000)
 rm(geodata, model)
 gc()
 
