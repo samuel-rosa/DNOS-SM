@@ -1012,24 +1012,6 @@ tmp <- gsub("pos=!h,]", "pos=!h,doinside={\\scriptsize\\setstretch{1.1}}]", tmp)
 writeLines(tmp, file)
 rm(Covariate, long_cap, foot, file)
 
-# SAVE - LINEAR MODELS #########################################################
-save(clay_back, clay_back_stats, clay_both, clay_both_stats, clay_for, 
-     clay_for_stats, clay_full, clay_full_stats, clay_sel, clay_vif, 
-     clay_vif_stats, drop, ecec_back, ecec_back_stats, ecec_both, 
-     ecec_both_stats, ecec_for, ecec_for_stats, ecec_full, ecec_full_stats,
-     ecec_sel, ecec_vif, ecec_vif_stats, orca_back, orca_back_stats, orca_both,
-     orca_both_stats, orca_for, orca_for_stats, orca_full, orca_full_stats,
-     orca_sel, orca_vif, orca_vif_stats, clay_sel, orca_sel, ecec_sel,
-     file = paste(r_data, "1stArticle-lm.rda", sep = ""))
-rm(clay_back, clay_back_stats, clay_both, clay_both_stats, clay_for, 
-   clay_for_stats, clay_full, clay_full_stats, clay_sel, clay_vif, 
-   clay_vif_stats, drop, ecec_back, ecec_back_stats, ecec_both, 
-   ecec_both_stats, ecec_for, ecec_for_stats, ecec_full, ecec_full_stats,
-   ecec_sel, ecec_vif, ecec_vif_stats, orca_back, orca_back_stats, orca_both,
-   orca_both_stats, orca_for, orca_for_stats, orca_full, orca_full_stats,
-   orca_sel, orca_vif, orca_vif_stats)
-gc()
-
 # LINEAR MIXED MODEL ###########################################################
 # We fit linear mixed models using the poor, base, fine, and best linear models
 # fitter above. The variogram model fit to the empirical variogram is saved to
@@ -1464,12 +1446,18 @@ pdf_file <- paste(fig_dir, "FIG6", letters[1:3], sep = "")
 pdf2png(pdf_file)
 rm(pdf_file)
 
-
-save(list = ls(), file = paste(r_data, "1stArticle.rda", sep = ""))
-load(file = paste(r_data, "1stArticle.rda", sep = ""))
-
-
-
+# SAVE - LINEAR MODELS #########################################################
+# We save all data produced till now and remove large objects containing linear
+# models calibrated using different covariate selection procedures.
+save(list = ls(), file = paste(r_data, "1stArticlePartI.rda", sep = ""))
+rm(clay_back, clay_back_stats, clay_both, clay_both_stats, clay_for, 
+   clay_for_stats, clay_full, clay_full_stats, clay_vif, clay_vif_stats, drop,
+   ecec_back, ecec_back_stats, ecec_both, ecec_both_stats, ecec_for, 
+   ecec_for_stats, ecec_full, ecec_full_stats, ecec_vif, ecec_vif_stats,
+   orca_back, orca_back_stats, orca_both, orca_both_stats, orca_for, 
+   orca_for_stats, orca_full, orca_full_stats, orca_vif, orca_vif_stats)
+gc()
+load(file = paste(r_data, "1stArticlePartI.rda", sep = ""))
 
 # LEAVE-ONE-OUT CROSS-VALIDATION ###############################################
 # We check our models using leave-one-out cross-validation. The predictions are
@@ -1625,15 +1613,18 @@ gc()
 
 # SPATIAL PREDICTION - KRIGING #################################################
 # Universal kriging, also known as kriging with external drift (trend)
+
 # prepare base data
 system("r.mask -o input=buffer_BASIN_10")
 locations <- readRAST6("dnos.raster")
 
 # CLAY - base linear mixed model -----------------------------------------------
 # prepare base data
-geodata <- clay_base_geodata
-model   <- clay_base_lmm
-file    <- "clay_base_lmm_krige.rda"
+model <- clay_sel$base_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- clay_sel$base_lmm
+file <- "clay_base_lmm_krige.rda"
 covars  <- colnames(geodata$covariate)
 trend   <- formula(paste("~", paste(covars, collapse = " + ")))
 covars  <- readRAST6(covars)
