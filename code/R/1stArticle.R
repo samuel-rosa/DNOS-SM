@@ -1013,16 +1013,22 @@ writeLines(tmp, file)
 rm(Covariate, long_cap, foot, file)
 
 # SAVE - LINEAR MODELS #########################################################
-# save(bc_lambda, cal_data, clay_back, clay_back_stats, clay_both,
-#      clay_both_stats, clay_for, clay_for_stats, clay_full, clay_full_stats, 
-#      clay_sel, clay_vif, clay_vif_stats, combs, deltaR2, dem1, dem2, dem_dir, 
-#      drop, ecec_back, ecec_back_stats, ecec_both, ecec_both_stats, ecec_for, 
-#      ecec_for_stats, ecec_full, ecec_full_stats, ecec_sel, ecec_vif, 
-#      ecec_vif_stats, forms, geo1, geo2, land1, land2, orca_back, 
-#      orca_back_stats, orca_both, orca_both_stats, orca_for, orca_for_stats,
-#      orca_full, orca_full_stats, orca_sel, orca_vif, orca_vif_stats, pdf2png,
-#      preds, sat1, sat2, soil1, soil2, 
-#      file = paste(firstArticle_dir, "1stArticle.RData", sep = ""))
+save(clay_back, clay_back_stats, clay_both, clay_both_stats, clay_for, 
+     clay_for_stats, clay_full, clay_full_stats, clay_sel, clay_vif, 
+     clay_vif_stats, drop, ecec_back, ecec_back_stats, ecec_both, 
+     ecec_both_stats, ecec_for, ecec_for_stats, ecec_full, ecec_full_stats,
+     ecec_sel, ecec_vif, ecec_vif_stats, orca_back, orca_back_stats, orca_both,
+     orca_both_stats, orca_for, orca_for_stats, orca_full, orca_full_stats,
+     orca_sel, orca_vif, orca_vif_stats, clay_sel, orca_sel, ecec_sel,
+     file = paste(r_data, "1stArticle-lm.rda", sep = ""))
+rm(clay_back, clay_back_stats, clay_both, clay_both_stats, clay_for, 
+   clay_for_stats, clay_full, clay_full_stats, clay_sel, clay_vif, 
+   clay_vif_stats, drop, ecec_back, ecec_back_stats, ecec_both, 
+   ecec_both_stats, ecec_for, ecec_for_stats, ecec_full, ecec_full_stats,
+   ecec_sel, ecec_vif, ecec_vif_stats, orca_back, orca_back_stats, orca_both,
+   orca_both_stats, orca_for, orca_for_stats, orca_full, orca_full_stats,
+   orca_sel, orca_vif, orca_vif_stats)
+gc()
 
 # LINEAR MIXED MODEL ###########################################################
 # We fit linear mixed models using the poor, base, fine, and best linear models
