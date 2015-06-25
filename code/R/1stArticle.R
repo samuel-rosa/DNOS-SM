@@ -1472,14 +1472,22 @@ load(file = paste(r_data, "1stArticle.rda", sep = ""))
 
 
 # LEAVE-ONE-OUT CROSS-VALIDATION ###############################################
+# We check our models using leave-one-out cross-validation. The predictions are
+# back-transformed using numerical simulation. In both cases (lm and lmm) all
+# model parameters are reestimated at each cross-validation step. Because we
+# used an authomated covariate selection, it would be more elegant to submit the
+# whole set of covariates to the authomated selection at each cross-validation
+# step. However, we have chosen not to do so because we saw above with the
+# model series plots that the results are quite stable independent of the 
+# covariate selection method used. We stress that during the back-transformation
+# of values predicted using the linear model we assume that the prediction error
+# variance is estimated without bias.
 
 # Check the needed number of realizations --------------------------------------
 # We start checking how many realizations are needed to stabilize the variance
 # when back-transforming the predictions from the Box-CoX space to the original
-# soil data space. We use the same number of realizations for all cases. For the
-# linear models we assume that the prediction error variance is estimated 
-# without bias. The results show that we should use at least 20,000 
-# realizations.
+# soil data space. We use the same number of realizations for all cases.
+#  The results show that we should use at least 20,000 realizations.
 
 # CLAY
 model <- clay_sel$base_lm
