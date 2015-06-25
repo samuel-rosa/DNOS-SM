@@ -60,16 +60,8 @@ tab_dir <- path.expand("~/projects/dnos-sm-rs/res/tab/1stArticle/")
     
 #load("sm-dnos-phd-chap1.RData")
 #load("sm-dnos-phd-chap1-final-models.RData")
-#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/isAliased.R")
-#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/stepAliased.R")
-#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/whichAliased.R")
-#source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/invBoxCox.R")
-# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/looCV.R")
-# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/krigeCV.R")
-# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvKrigeCDF.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvStats.R")
 # source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/spredict.R")
-# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/linesREML.R")
 
 # Initiate GRASS GIS (64) section
 initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
@@ -77,72 +69,6 @@ initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
           pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
 gmeta6()
-
-# USER DEFINED FUNCTIONS #######################################################
-
-# Convert pdf figures to png
-# This is to reduce the size of the document submitted to the review process.
-# The published document is prepared with the high-quality pdf images.
-pdf2png <- 
-  function(file, density = 300, quality = 100) {
-    cmd <- paste("convert -density ", density, " ", file, ".pdf -quality ",
-                 quality, " ", file, ".png", sep = "")
-    lapply(cmd, system)
-  }
-
-# Effect of dropping one environmental covariate
-deltaR2 <- 
-  function (a, b, cols = c("r2", "adj_r2", "ADJ_r2"), 
-            rows = c("soil", "land", "geo", "sat", "dem")) {
-    a <- a[, c("r2", "adj_r2", "ADJ_r2")]
-    b <- b[, c("r2", "adj_r2", "ADJ_r2")]
-    ab <- list()
-    for (i in 1:3){
-      ab[[i]] <- as.numeric(a)[i] - as.numeric(b[, i])
-    }
-    ab <- as.data.frame(ab)
-    colnames(ab) <- c("r2", "adj_r2", "ADJ_r2")
-    rownames(ab) <- rows
-    return (ab)
-  }
-
-# Create an object of class 'geodata' from an object of class 'lm'
-makeGeodata <-
-  function (y, model, data) {
-    covars <- attr(terms(model), "term.labels")
-    covar_col <- which(match(colnames(data), covars) != "NA")
-    data_col  <- which(colnames(data) == y)
-    coords.col <- c(ncol(data) - 1, ncol(data))
-    geod <- as.geodata(obj = data, coords.col = coords.col,
-                       data.col = data_col, covar.col = covar_col)
-    return (geod)
-  }
-
-# Fit an empirical variogram using an object of class 'lm'
-fitVariog <-
-  function (y, model, data, lambda, breaks) {
-    covars <- attr(terms(model), "term.labels")
-    geod <- makeGeodata(y = y, model = model, data = data)
-    trend <- formula(paste("~", paste(covars, collapse = " + ")))
-    vario <- variog(geodata = geod, trend = trend, lambda = lambda,
-                    breaks = breaks)
-    return (vario)
-  }
-
-# Fit a linear mixed model with REML using an object of class 'lm'
-fitREML <-
-  function (y, model, data, ini.cov.pars, nugget, lambda) {
-    covars <- attr(terms(model), "term.labels")
-    covar_col <- which(match(colnames(data), covars) != "NA")
-    data_col  <- which(colnames(data) == y)
-    coords.col <- c(ncol(data) - 1, ncol(data))
-    geod <- as.geodata(data, coords.col = coords.col,
-                       data.col = data_col, covar.col = covar_col)
-    trend <- formula(paste("~", paste(covars, collapse = " + ")))
-    res <- likfit(geodata = geod, trend = trend, ini.cov.pars = ini.cov.pars,
-                  nugget = nugget, lambda = lambda, lik.method = "REML")
-    return (res)
-  }
 
 # LOCATION OF THE STUDY AREA ###################################################
 
