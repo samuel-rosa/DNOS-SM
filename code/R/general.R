@@ -14,13 +14,14 @@ require(spgrass6)
 
 # SET DATA DIRECTORIES AND DEFINITIONS #########################################
 
-# Data directories  ------------------------------------------------------------
+# Directories  -----------------------------------------------------------------
 boundary_data <- path.expand("~/projects/dnos-sm-rs/data/boundaries/")
 geology_data <- path.expand("~/projects/dnos-sm-rs/data/geology/")
 hydrology_data <- path.expand("~/projects/dnos-sm-rs/data/hydrology/")
 landuse_data <- path.expand("~/projects/dnos-sm-rs/data/landuse/")
 point_data <- path.expand("~/projects/dnos-sm-rs/data/point/")
 r_data <- path.expand("~/projects/dnos-sm-rs/data/R/")
+r_code <- "~/projects/dnos-sm-rs/code/R/"
 soilclass_data <- path.expand("~/projects/dnos-sm-rs/data/soilclass/")
 terrain_data <- path.expand("~/projects/dnos-sm-rs/data/terrain/")
 
@@ -99,7 +100,7 @@ ca_utm22s <- CRS("+init=epsg:22522")
 # SAVE DATA ####################################################################
 ls()
 save(boundary_data, cellsize, dbGRASS, terrain_data, geology_data,
-     hydrology_data, landuse_data, point_data, r_data, soilclass_data,
+     hydrology_data, landuse_data, point_data, r_data, r_code, soilclass_data,
      sirgas2000, sirgas2000utm22s, wgs1984, wgs1984utm22s, ca_utm22s,
      file = paste(r_data, "general.RData", sep = ""))
 

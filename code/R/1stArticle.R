@@ -35,9 +35,12 @@ require(mail)
 
 # Load auxiliary data
 data(R_pal)
-r_data <- path.expand("~/projects/dnos-sm-rs/data/R/")
+r_data <- "~/projects/dnos-sm-rs/data/R/"
 load(paste(r_data, "general.RData", sep = ""))
 ls()
+
+# Source user defined function
+source(paste(r_code, "1stArticleHelper.R", sep = ""))
 
 # Load and check calibration data (1:350)
 cal_data <- paste(point_data, "labData.csv", sep = "")
