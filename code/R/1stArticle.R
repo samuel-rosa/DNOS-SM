@@ -1,4 +1,5 @@
-# DESCRIPTION ################################################################## # Source code used to develop the first article of my PhD research project. The
+# DESCRIPTION ##################################################################
+# Source code used to develop the first article of my PhD research project. The
 # reference for the article is as follows:
 # Samuel-Rosa, A.; Heuvelink, G. B. M.; Vasques, G. M. & Anjos, L. H. C. Do more
 # detailed environmental covariates deliver more accurate soil maps?. Geoderma,
@@ -37,14 +38,13 @@ require(mail)
 data(R_pal)
 r_data <- "~/projects/dnos-sm-rs/data/R/"
 load(paste(r_data, "general.RData", sep = ""))
-ls()
 
 # Source user defined function
 source(paste(r_code, "1stArticleHelper.R", sep = ""))
 
 # Load and check calibration data (1:350)
 cal_data <- paste(point_data, "labData.csv", sep = "")
-cal_data <- read.table(cal_data, sep = ";", head = TRUE, dec = ".", 
+cal_data <- read.table(cal_data, sep = ";", header = TRUE, dec = ".", 
                        na.strings = "na")
 colnames(cal_data)
 str(cal_data)
@@ -58,14 +58,9 @@ cal_data <- spTransform(cal_data, wgs1984utm22s)
 plot(cal_data, pch = 20, cex = 0.5)
 
 # Set path to results (figures and tables)
-fig_dir <- path.expand("~/projects/dnos-sm-rs/res/fig/1stArticle/")
-tab_dir <- path.expand("~/projects/dnos-sm-rs/res/tab/1stArticle/")
+fig_dir <- "~/projects/dnos-sm-rs/res/fig/1stArticle/"
+tab_dir <- "~/projects/dnos-sm-rs/res/tab/1stArticle/"
     
-#load("sm-dnos-phd-chap1.RData")
-#load("sm-dnos-phd-chap1-final-models.RData")
-# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/cvStats.R")
-# source("/home/alessandro/PROJECTS/pedometrics/pedometrics/cooking/spredict.R")
-
 # Initiate GRASS GIS (64) section
 initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
           location = "dnos-sm-rs", mapset = "predictions", 
@@ -1386,17 +1381,27 @@ rm(clay_back, clay_back_stats, clay_both, clay_both_stats, clay_for,
    orca_back, orca_back_stats, orca_both, orca_both_stats, orca_for, 
    orca_for_stats, orca_full, orca_full_stats, orca_vif, orca_vif_stats)
 gc()
+
+# Load data to continue working
 load(file = paste(r_data, "1stArticlePartI.rda", sep = ""))
+rm(clay_back, clay_back_stats, clay_both, clay_both_stats, clay_for, 
+   clay_for_stats, clay_full, clay_full_stats, clay_vif, clay_vif_stats, drop,
+   ecec_back, ecec_back_stats, ecec_both, ecec_both_stats, ecec_for, 
+   ecec_for_stats, ecec_full, ecec_full_stats, ecec_vif, ecec_vif_stats,
+   orca_back, orca_back_stats, orca_both, orca_both_stats, orca_for, 
+   orca_for_stats, orca_full, orca_full_stats, orca_vif, orca_vif_stats)
+gc()
 
 # LEAVE-ONE-OUT CROSS-VALIDATION ###############################################
 # We check our models using leave-one-out cross-validation. The predictions are
 # back-transformed using numerical simulation. In both cases (lm and lmm) all
-# model parameters are reestimated at each cross-validation step. Because we
-# used an authomated covariate selection, it would be more elegant to submit the
-# whole set of covariates to the authomated selection at each cross-validation
-# step. However, we have chosen not to do so because we saw above with the
-# model series plots that the results are quite stable independent of the 
-# covariate selection method used. We stress that during the back-transformation
+# model parameters are reestimated at each cross-validation step, significantly 
+# increasing the computation time. Because we used an authomated covariate
+# selection, it would be more elegant to submit the whole set of covariates 
+# to the authomated selection at each cross-validation step. However, we have 
+# chosen not to do so because we saw above with the model series plots 
+# that the results are quite stable independent of the covariate selection 
+# method used. We stress that during the back-transformation
 # of values predicted using the linear model we assume that the prediction error
 # variance is estimated without bias.
 
@@ -1540,8 +1545,79 @@ ecec_sel$best_lmm_cv <- krigeCV(model = model, geodata = geodata, back = TRUE,
 rm(geodata, model)
 gc()
 
+# Tables with results ----------------------------------------------------------
+
+# Cross-validation statistics (ME, MAE, RMSE, SRMSE, AVE)
+obs <- data.frame(cal_data$CLAY, cal_data$CLAY, cal_data$CLAY, cal_data$CLAY, 
+                  cal_data$ORCA, cal_data$ORCA, cal_data$ORCA, cal_data$ORCA,
+                  cal_data$ECEC, cal_data$ECEC, cal_data$ECEC, cal_data$ECEC)
+str(obs)               
+pred <- data.frame(clay_sel$base_lm_cv$back.transformed$pred,
+                   clay_sel$base_lmm_cv$back.transformed$pred,
+                   clay_sel$best_lm_cv$back.transformed$pred,
+                   clay_sel$best_lmm_cv$back.transformed$pred,
+                   orca_sel$base_lm_cv$back.transformed$pred,
+                   orca_sel$base_lmm_cv$back.transformed$pred,
+                   orca_sel$best_lm_cv$back.transformed$pred,
+                   orca_sel$best_lmm_cv$back.transformed$pred,
+                   ecec_sel$base_lm_cv$back.transformed$pred,
+                   ecec_sel$base_lmm_cv$back.transformed$pred,
+                   ecec_sel$best_lm_cv$back.transformed$pred,
+                   ecec_sel$best_lmm_cv$back.transformed$pred)
+str(pred)
+pev <- data.frame(clay_sel$base_lm_cv$back.transformed$pev,
+                  clay_sel$base_lmm_cv$back.transformed$pev,
+                  clay_sel$best_lm_cv$back.transformed$pev,
+                  clay_sel$best_lmm_cv$back.transformed$pev,
+                  orca_sel$base_lm_cv$back.transformed$pev,
+                  orca_sel$base_lmm_cv$back.transformed$pev,
+                  orca_sel$best_lm_cv$back.transformed$pev,
+                  orca_sel$best_lmm_cv$back.transformed$pev,
+                  ecec_sel$base_lm_cv$back.transformed$pev,
+                  ecec_sel$base_lmm_cv$back.transformed$pev,
+                  ecec_sel$best_lm_cv$back.transformed$pev,
+                  ecec_sel$best_lmm_cv$back.transformed$pev)
+str(pev)
+models <- c("clay_sel$base_lm", "clay_sel$base_lmm", "clay_sel$best_lm",
+            "clay_sel$best_lmm", "orca_sel$base_lm", "orca_sel$base_lmm",
+            "orca_sel$best_lm", "orca_sel$best_lmm", "ecec_sel$base_lm",
+            "ecec_sel$base_lmm", "ecec_sel$best_lm", "ecec_sel$best_lmm")
+stats <- list()
+for (i in 1:dim(obs)[2]) {
+  stats[[i]] <- cvStats(obs[, i], pred[, i], pev[, i])
+}
+nam <- names(stats[[1]])
+stats <- t(matrix(unlist(stats), ncol = 12))
+colnames(stats) <- nam
+stats <- data.frame(stats)
+Structure <- rep(c("LRM", "LMM"), 6)
+Model <- data.frame(Structure, stats[, c("me", "mae", "rmse", "srmse", "r2")])
+rgroup <- c("CLAY (g kg$^{-1}$)", "SOC (g kg$^{-1}$)", "ECEC (mmol kg$^{-1}$)")
+colheads <- c("Type", "ME", "MAE", "RMSE", "SRMSE", "AVE")
+rowname <- rep(c("Baseline", "", "Best performing", ""), 3)
+long_cap <- paste("Statistics$^a$ of the LOO-CV of baseline and best ",
+                  "performing multiple linear regression models (LRMs) and ",
+                  "linear mixed models (LMMs).", sep = "")
+foot <- paste("${}^a$ Statistics: mean error (\\textit{ME}), mean absolute ",
+              "error (\\textit{MAE}), root mean squared error ",
+              "(\\textit{RMSE}), scaled root mean squared error ",
+              "(\\textit{SRMSE}, unitless), and amount of variance explained ", 
+              "(\\textit{AVE}, percent).", sep = "")
+file <-  paste(tab_dir, "TAB05.tex", sep = "")
+digits <- c(0, 2, 1, 1, 2, 1)
+latex(Model, ctable = TRUE, n.rgroup = c(4, 4, 4), rgroup = rgroup, 
+      file = file, label = "tab:cv-stats", table.env = TRUE, 
+      cgroupTexCmd = NULL, rgroupTexCmd = NULL, rowname = rowname,
+      colheads = colheads, na.blank = TRUE, caption = long_cap, where = NULL,
+      size = "scriptsize", insert.bottom = foot, cdec = digits)
+
 # SPATIAL PREDICTION - KRIGING #################################################
-# Universal kriging, also known as kriging with external drift (trend)
+# Spatial predictions at unvisited locations are done using universal kriging,
+# also known as kriging with external drift (trend). The entire prediction step 
+# takes some time to complete because of the back-transformation of predicted
+# values which is done using simulation. Because we are dealing with a large 
+# amount of prediction locations, the prediciton grid has to be split into
+# several tiles. Otherwise R craches due to memory overload.
 
 # prepare base data
 system("r.mask -o input=buffer_BASIN_10")
@@ -1553,11 +1629,11 @@ model <- clay_sel$base_lm
 geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
                       covar.col = colnames(model$model)[-1])
 model <- clay_sel$base_lmm
-file <- "clay_base_lmm_krige.rda"
+file <- paste(r_data, "1stArticle_clay_base_krige.rda", sep = "")
 covars  <- colnames(geodata$covariate)
 trend   <- formula(paste("~", paste(covars, collapse = " + ")))
 covars  <- readRAST6(covars)
-save(locations, geodata, model, file, covars, trend, spredict, file = "test-server.rda")
+
 # make predictions
 spredict(model = model, geodata = geodata, file = file, covars = covars, 
          simul.back = TRUE, n.sim = 20000, pred.loc = locations,
@@ -1565,11 +1641,13 @@ spredict(model = model, geodata = geodata, file = file, covars = covars,
 
 # CLAY - best linear mixed model -----------------------------------------------
 # prepare base data
-geodata <- clay_best_geodata
-model   <- clay_best_lmm
-file    <- "clay_best_lmm_krige.rda"
-covars  <- colnames(geodata$covariate)
-trend   <- formula(paste("~", paste(covars, collapse = " + ")))
+model <- clay_sel$best_lmm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- clay_sel$best_lmm
+file <- paste(r_data, "1stArticle_clay_best_krige.rda", sep = "")
+covars <- colnames(geodata$covariate)
+trend <- formula(paste("~", paste(covars, collapse = " + ")))
 covars  <- readRAST6(covars)
 # make predictions
 spredict(model = model, geodata = geodata, file = file, covars = covars,
@@ -1577,30 +1655,25 @@ spredict(model = model, geodata = geodata, file = file, covars = covars,
          n.tiles = 1000, email = "alessandrosamuelrosa@gmail.com")
 
 # CLAY - kriging predictions ---------------------------------------------------
-load("clay_base_lmm_krige.rda")
+
+# load base model predictions
+load(paste(r_data, "1stArticle_clay_base_krige.rda", sep = ""))
 clay_base_lmm_krige <- data.frame(pred[1:4])
-str(clay_base_lmm_krige)
 rm(pred)
 coordinates(clay_base_lmm_krige) <- ~ x.coord + y.coord
 gridded(clay_base_lmm_krige) <- TRUE
 proj4string(clay_base_lmm_krige) <- wgs1984utm22s
-str(clay_base_lmm_krige)
-image(clay_base_lmm_krige)
-spplot(clay_base_lmm_krige, zcol = "krige.var", col.regions = bpy.colors(256))
 
-load("clay_best_lmm_krige.rda")
+# load best model predictions
+load(paste(r_data, "1stArticle_clay_best_krige.rda", sep = ""))
 clay_best_lmm_krige <- data.frame(pred[1:4])
-str(clay_best_lmm_krige)
 rm(pred)
 coordinates(clay_best_lmm_krige) <- ~ x.coord + y.coord
 gridded(clay_best_lmm_krige) <- TRUE
 proj4string(clay_best_lmm_krige) <- wgs1984utm22s
-str(clay_best_lmm_krige)
-image(clay_best_lmm_krige)
-spplot(clay_best_lmm_krige, zcol = "krige.var", col.regions = bpy.colors(256))
 
 # prepare plots with predictions
-breaks <- seq(min(cal_data$clay), max(cal_data$clay), by = 1)
+breaks <- seq(min(cal_data$CLAY), max(cal_data$CLAY), by = 1)
 max_z <- max(clay_base_lmm_krige$krige.pred, clay_best_lmm_krige$krige.pred)
 if (max(breaks) < max_z) {
   breaks <- c(breaks, max_z)
@@ -1608,16 +1681,17 @@ if (max(breaks) < max_z) {
 psd.colors <- colorRampPalette(R_pal$tex_pal)
 col <- psd.colors(length(breaks)-1)
 clay_base_lmm_krige$krige.pred.cut <- cut(clay_base_lmm_krige$krige.pred, 
-                                            breaks = breaks)
+                                          breaks = breaks)
 clay_best_lmm_krige$krige.pred.cut <- cut(clay_best_lmm_krige$krige.pred, 
-                                            breaks = breaks)
+                                          breaks = breaks)
 p1 <- spplot(clay_base_lmm_krige, "krige.pred.cut", col.regions = col)
 p2 <- spplot(clay_best_lmm_krige, "krige.pred.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
+
 # save plots with predictions
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay_base_lmm_krige.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG07a.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1626,7 +1700,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay_best_lmm_krige.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG07d.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1637,6 +1711,7 @@ plot(p2)
 dev.off()
 rm(p1, p2)
 gc()
+
 # prepare plots with prediction variance
 # take the square root to improve plotting
 clay_base_lmm_krige$krige.var <- sqrt(clay_base_lmm_krige$krige.var)
@@ -1651,16 +1726,17 @@ if (max(breaks) < max_z) {
 }
 col <- bpy.colors(length(breaks)-1)
 clay_base_lmm_krige$krige.var.cut <- cut(clay_base_lmm_krige$krige.var, 
-                                           breaks = breaks)
+                                         breaks = breaks)
 clay_best_lmm_krige$krige.var.cut <- cut(clay_best_lmm_krige$krige.var, 
-                                           breaks = breaks)
+                                         breaks = breaks)
 p1 <- spplot(clay_base_lmm_krige, "krige.var.cut", col.regions = col)
 p2 <- spplot(clay_best_lmm_krige, "krige.var.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
+
 # save plots with prediction variance
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay_base_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG08a.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1669,7 +1745,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(firstArticle_dir, "clay_best_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG08d.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1683,12 +1759,16 @@ gc()
 
 # CARBON - base linear mixed model ---------------------------------------------
 # prepare base data
-geodata <- carbon_base_geodata
-model   <- carbon_base_lmm
-file    <- "carbon_base_lmm_krige.rda"
+
+model <- orca_sel$base_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- orca_sel$base_lmm
+file <- paste(r_data, "1stArticle_orca_base_krige.rda", sep = "")
 covars  <- colnames(geodata$covariate)
-trend   <- formula(paste("~", paste(covars, collapse = " + ")))
-covars  <- readRAST6(covars)
+trend <- formula(paste("~", paste(covars, collapse = " + ")))
+covars <- readRAST6(covars)
+
 # make predictions
 spredict(model = model, geodata = geodata, file = file, covars = covars, 
          simul.back = TRUE, n.sim = 20000, pred.loc = locations,
@@ -1696,39 +1776,41 @@ spredict(model = model, geodata = geodata, file = file, covars = covars,
 
 # CARBON - best linear mixed model ---------------------------------------------
 # prepare base data
-geodata <- carbon_best_geodata
-model   <- carbon_best_lmm
-file    <- "carbon_best_lmm_krige.rda"
-covars  <- colnames(geodata$covariate)
-trend   <- formula(paste("~", paste(covars, collapse = " + ")))
-covars  <- readRAST6(covars)
+
+model <- orca_sel$best_lm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- orca_sel$best_lmm
+file <- paste(r_data, "1stArticle_orca_best_krige.rda", sep = "")
+covars <- colnames(geodata$covariate)
+trend <- formula(paste("~", paste(covars, collapse = " + ")))
+covars <- readRAST6(covars)
+
 # make predictions
 spredict(model = model, geodata = geodata, file = file, covars = covars, 
          simul.back = TRUE, n.sim = 20000, pred.loc = locations,
          n.tiles = 1000, email = "alessandrosamuelrosa@gmail.com")
 
 # CARBON - kriging predictions -------------------------------------------------
-load("carbon_base_lmm_krige.rda")
+
+# load base model predictions
+load(paste(r_data, "1stArticle_orca_base_krige.rda", sep = ""))
 carbon_base_lmm_krige <- data.frame(pred[1:4])
-str(carbon_base_lmm_krige)
 rm(pred)
 coordinates(carbon_base_lmm_krige) <- ~ x.coord + y.coord
 gridded(carbon_base_lmm_krige) <- TRUE
 proj4string(carbon_base_lmm_krige) <- wgs1984utm22s
-str(carbon_base_lmm_krige)
-image(carbon_base_lmm_krige)
 
-load("carbon_best_lmm_krige.rda")
+# load best model predictions
+load(paste(r_data, "1stArticle_orca_best_krige.rda", sep = ""))
 carbon_best_lmm_krige <- data.frame(pred[1:4])
-str(carbon_best_lmm_krige)
 rm(pred)
 coordinates(carbon_best_lmm_krige) <- ~ x.coord + y.coord
 gridded(carbon_best_lmm_krige) <- TRUE
 proj4string(carbon_best_lmm_krige) <- wgs1984utm22s
-str(carbon_best_lmm_krige)
-image(carbon_best_lmm_krige)
+
 # prepare plots with predictions
-breaks <- seq(min(cal_data$carbon), max(cal_data$carbon), by = 1)
+breaks <- seq(min(cal_data$ORCA), max(cal_data$ORCA), by = 1)
 max_z <- max(carbon_base_lmm_krige$krige.pred, carbon_best_lmm_krige$krige.pred)
 if (max(breaks) < max_z) {
   breaks <- c(breaks, max_z)
@@ -1743,9 +1825,10 @@ p1 <- spplot(carbon_base_lmm_krige, "krige.pred.cut", col.regions = col)
 p2 <- spplot(carbon_best_lmm_krige, "krige.pred.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
+
 # save plots with predictions
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_base_lmm_krige.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG07b.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1754,7 +1837,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_best_lmm_krige.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG07e.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1765,6 +1848,7 @@ plot(p2)
 dev.off()
 rm(p1, p2)
 gc()
+
 # prepare plots with prediction variance
 # take the square root to improve plotting
 carbon_base_lmm_krige$krige.var <- sqrt(carbon_base_lmm_krige$krige.var)
@@ -1786,9 +1870,10 @@ p1 <- spplot(carbon_base_lmm_krige, "krige.var.cut", col.regions = col)
 p2 <- spplot(carbon_best_lmm_krige, "krige.var.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
+
 # save plots with prediction variance
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_base_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG08b.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1797,7 +1882,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(firstArticle_dir, "carbon_best_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG08e.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1809,7 +1894,7 @@ dev.off()
 rm(p1, p2)
 gc()
 
-# extrapolation
+# Check extrapolations in the predictions
 a <- which(carbon_best_lmm_krige$krige.pred >= max(cal_data$carbon))
 b <- coordinates(carbon_best_lmm_krige[a, ])
 pts <- data.frame(b, carbon_best_lmm_krige$krige.pred[a])
@@ -1822,59 +1907,59 @@ quantile(round(cal_data$TPI_10_15), prob = seq(0, 1, 0.1))
 quantile(round(pts$TPI_10_15), prob = seq(0, 1, 0.1))
 
 # ECEC - base linear mixed model -----------------------------------------------
+
 # prepare base data
-geodata <- ecec_base_geodata
-model   <- ecec_base_lmm
-file    <- "ecec_base_lmm_krige.rda"
-covars  <- colnames(geodata$covariate)
-trend   <- formula(paste("~", paste(covars, collapse = " + ")))
-covars  <- readRAST6(covars)
+model <- ecec_sel$base_lmm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- ecec_sel$base_lmm
+file <- paste(r_data, "1stArticle_ecec_base_krige.rda", sep = "")
+covars <- colnames(geodata$covariate)
+trend <- formula(paste("~", paste(covars, collapse = " + ")))
+covars <- readRAST6(covars)
+
 # make predictions
 spredict(model = model, geodata = geodata, file = file, covars = covars, 
          simul.back = TRUE, n.sim = 20000, pred.loc = locations,
          n.tiles = 1000, email = "alessandrosamuelrosa@gmail.com")
 
 # ECEC - best linear mixed model -----------------------------------------------
+
 # prepare base data
-geodata <- ecec_best_geodata
-model   <- ecec_best_lmm
-file    <- "ecec_best_lmm_krige.rda"
-covars  <- colnames(geodata$covariate)
-trend   <- formula(paste("~", paste(covars, collapse = " + ")))
-covars  <- readRAST6(covars)
+model <- ecec_sel$best_lmm
+geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
+                      covar.col = colnames(model$model)[-1])
+model <- ecec_sel$best_lmm
+file <- paste(r_data, "1stArticle_ecec_best_krige.rda", sep = "")
+covars <- colnames(geodata$covariate)
+trend <- formula(paste("~", paste(covars, collapse = " + ")))
+covars <- readRAST6(covars)
+
 # make predictions
 spredict(model = model, geodata = geodata, file = file, covars = covars, 
          simul.back = TRUE, n.sim = 20000, pred.loc = locations,
          n.tiles = 1000, email = "alessandrosamuelrosa@gmail.com")
 
 # ECEC - kriging predictions ---------------------------------------------------
-load("ecec_base_lmm_krige.rda")
+
+# load base model predictions
+load(paste(r_data, "1stArticle_ecec_base_krige.rda", sep = ""))
 ecec_base_lmm_krige <- data.frame(pred[1:4])
-str(ecec_base_lmm_krige)
 rm(pred)
-gc()
 coordinates(ecec_base_lmm_krige) <- ~ x.coord + y.coord
 gridded(ecec_base_lmm_krige) <- TRUE
 proj4string(ecec_base_lmm_krige) <- wgs1984utm22s
-str(ecec_base_lmm_krige)
-image(ecec_base_lmm_krige)
-spplot(ecec_base_lmm_krige, zcol = "krige.var", col.regions = bpy.colors(256))
-summary(ecec_base_lmm_krige)
 
-load("ecec_best_lmm_krige.rda")
+# load best model predictions
+load("1stArticle_ecec_best_krige.rda")
 ecec_best_lmm_krige <- data.frame(pred[1:4])
-str(ecec_best_lmm_krige)
 rm(pred)
-gc()
 coordinates(ecec_best_lmm_krige) <- ~ x.coord + y.coord
 gridded(ecec_best_lmm_krige) <- TRUE
 proj4string(ecec_best_lmm_krige) <- wgs1984utm22s
-str(ecec_best_lmm_krige)
-image(ecec_best_lmm_krige, zcol = "krige.pred")
-spplot(ecec_best_lmm_krige, zcol = "krige.var", col.regions = bpy.colors(256))
-summary(ecec_best_lmm_krige)
+
 # prepare plots with predictions
-breaks <- seq(min(cal_data$ecec), max(cal_data$ecec), by = 1)
+breaks <- seq(min(cal_data$ECEC), max(cal_data$ECEC), by = 1)
 max_z <- max(ecec_base_lmm_krige$krige.pred, ecec_best_lmm_krige$krige.pred)
 if (max(breaks) < max_z) {
   breaks <- c(breaks, max_z)
@@ -1889,9 +1974,10 @@ p1 <- spplot(ecec_base_lmm_krige, "krige.pred.cut", col.regions = col)
 p2 <- spplot(ecec_best_lmm_krige, "krige.pred.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
+
 # save plots with predictions
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_base_lmm_krige.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG07c.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1900,7 +1986,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_best_lmm_krige.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG07f.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1911,6 +1997,7 @@ plot(p2)
 dev.off()
 rm(p1, p2)
 gc()
+
 # prepare plots with prediction variance
 ecec_base_lmm_krige$krige.var <- sqrt(ecec_base_lmm_krige$krige.var)
 ecec_best_lmm_krige$krige.var <- sqrt(ecec_best_lmm_krige$krige.var)
@@ -1931,9 +2018,10 @@ p1 <- spplot(ecec_base_lmm_krige, "krige.var.cut", col.regions = col)
 p2 <- spplot(ecec_best_lmm_krige, "krige.var.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
 p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
+
 # save plots with prediction variance
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_base_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG08c.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1942,7 +2030,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(firstArticle_dir, "ecec_best_lmm_krige_var.pdf", sep = ""),
+pdf(file = paste(fig_dir, "FIG08f.pdf", sep = ""),
     width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
@@ -1954,87 +2042,6 @@ dev.off()
 rm(p1, p2)
 gc()
 
-# TABLES WITH RESULTS ##########################################################
-
-# Tables - selected models and cross-validation statistics ---------------------
-# selected models
-covars <- list(CLAYbase = paste(colnames(clay_base_geodata$covariate), 
-                                 collapse = "}, \texttt{"),
-               CLAYbest = paste(colnames(clay_best_geodata$covariate), 
-                                 collapse = "}, \texttt{"),
-               SOCbase = paste(colnames(carbon_base_geodata$covariate), 
-                                collapse = "}, \texttt{"),
-               SOCbest = paste(colnames(carbon_best_geodata$covariate), 
-                                collapse = "}, \texttt{"),
-               ECECbase = paste(colnames(ecec_base_geodata$covariate), 
-                                 collapse = "}, \texttt{"),
-               ECECbest = paste(colnames(ecec_best_geodata$covariate), 
-                                 collapse = "}, \texttt{"))
-covars <- lapply(covars, 
-                 function (X) {paste("\texttt{", X, "}", sep = "")})
-covars <- data.frame(covars, stringsAsFactors = FALSE)
-covars
-
-# cross-validation statistics (ME, RMSE, SRMSE, R-square)
-obs <- data.frame(cal_data$clay, cal_data$clay, cal_data$clay, cal_data$clay, 
-                  cal_data$carbon, cal_data$carbon, cal_data$carbon,
-                  cal_data$carbon, cal_data$ecec, cal_data$ecec, cal_data$ecec,
-                  cal_data$ecec)
-str(obs)               
-pred <- data.frame(clay_base_lm_cv$back.transformed$mean,
-                   clay_base_lmm_cv$back.transformed$predicted,
-                   clay_best_lm_cv$back.transformed$mean,
-                   clay_best_lmm_cv$back.transformed$predicted,
-                   carbon_base_lm_cv$back.transformed$mean,
-                   carbon_base_lmm_cv$back.transformed$predicted,
-                   carbon_best_lm_cv$back.transformed$mean,
-                   carbon_best_lmm_cv$back.transformed$predicted,
-                   ecec_base_lm_cv$back.transformed$mean,
-                   ecec_base_lmm_cv$back.transformed$predicted,
-                   ecec_best_lm_cv$back.transformed$mean,
-                   ecec_best_lmm_cv$back.transformed$predicted)
-str(pred)
-pev <- data.frame(clay_base_lm_cv$back.transformed$variance,
-                  clay_base_lmm_cv$back.transformed$krige.var,
-                  clay_best_lm_cv$back.transformed$variance,
-                  clay_best_lmm_cv$back.transformed$krige.var,
-                  carbon_base_lm_cv$back.transformed$variance,
-                  carbon_base_lmm_cv$back.transformed$krige.var,
-                  carbon_best_lm_cv$back.transformed$variance,
-                  carbon_best_lmm_cv$back.transformed$krige.var,
-                  ecec_base_lm_cv$back.transformed$variance,
-                  ecec_base_lmm_cv$back.transformed$krige.var,
-                  ecec_best_lm_cv$back.transformed$variance,
-                  ecec_best_lmm_cv$back.transformed$krige.var)
-str(pev)
-models <- c("clay_base_lm", "clay_base_lmm", "clay_best_lm",
-          "clay_best_lmm", "carbon_base_lm", "carbon_base_lmm",
-          "carbon_best_lm", "carbon_best_lmm", "ecec_base_lm",
-          "ecec_base_lmm", "ecec_best_lm", "ecec_best_lmm")
-stats <- list()
-for (i in 1:dim(obs)[2]) {
-  stats[[i]] <- cvStats(obs[, i], pred[, i], pev[, i])
-}
-nam <- names(stats[[1]])
-stats <- t(matrix(unlist(stats), ncol = 12))
-colnames(stats) <- nam
-stats <- data.frame(stats)
-Structure <- rep(c("LM", "LMM"), 6)
-Model <- data.frame(Structure, stats[, c("me", "mae", "rmse", "srmse", "r2")])
-rgroup <- c("CLAY (g kg$^{-1}$)", "SOC (g kg$^{-1}$)", "ECEC (mmol kg$^{-1}$)")
-colheads <- c("Type", "ME", "MAE", "RMSE", "SRMSE", "AVE")
-rowname <- rep(c("Base", "", "Best", ""), 3)
-long_cap <- "Statistics of the LOO-CV of \\textit{base} and \\textit{best} multiple linear regression models (LM) and linear mixed models (LMM)."
-foot <- "Statistics: mean error (ME), mean absolute error (MAE), root-mean-squared error (RMSE), scaled root-mean-squared error (SRMSE, unitless), and amount of variance explained (AVE, percent)."
-file <-  paste(firstArticle_dir, "cv-stats.tex", sep = "")
-digits <- c(0, 2, 1, 1, 2, 1)
-latex(Model, ctable = TRUE, n.rgroup = c(4, 4, 4), rgroup = rgroup, 
-      file = file, label = "tab:cv-stats", table.env = TRUE, 
-      cgroupTexCmd = NULL, rgroupTexCmd = NULL, rowname = rowname,
-      colheads = colheads, na.blank = TRUE, caption = long_cap, where = NULL,
-      size = "scriptsize", insert.bottom = foot, cdec = digits)
-
-\{1}{l}{Model}
 # SAVE DATA ####################################################################
 ls()
 # selected models and geodata

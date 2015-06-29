@@ -1,5 +1,291 @@
 # USER DEFINED FUNCTIONS #######################################################
 
+# make spatial predictions using kriging
+spredict <- 
+  function (geodata, model, pred.loc, covars, type.krige = "OK",
+            simul.back = FALSE, n.sim = 20000, sp.out = FALSE,
+            tile = TRUE, n.tiles = 100, file,
+            email, ...) {
+    # Make spatial predictions using kriging
+    #
+    # Args:
+    #   geodata:       An object of the class geodata containing the calibration
+    #                  observations.
+    #   model:         Geostatistical model used to make predictions. An object
+    #                  of class likGRF and/or variomodel.
+    #   pred.loc:      Object of class SpatialGridDataFrame with prediction
+    #                  locations.
+    #   covars:        Object of class SpatialGridDataFrame with values of the 
+    #                  covariates at prediction locations.
+    #   simul.back:    Logical for back-transforming predictions using
+    #                  Monte Carlo simulations. Defaults to simul.back = FALSE.
+    #   n.sim:         Defaults to n.sim = 20000.
+    #   sp.out:        Logical for indicating if an object of class 
+    #                  SpatialGridDataFrame with the predictions should be
+    #                  returned. Defaults to sp.out = FALSE.
+    #   tile:          Logical for indicating if predictions should be done using
+    #                  tiles. Defaults to tile = TRUE.
+    #   n.tiles:       Integer specifying the number of tiles that should be used
+    #                  to make predictions. Defaults to n.tiles = 100.
+    #   file:          A connection, or a character string naming the file to
+    #                  write predictions to.
+    #   email:         A valid email address of the recipient of the notification
+    #                  message. Used only when predictions are saved to a file.
+    #   ...:           Further arguments passed to function krige.conv().
+    #
+    # Returns:
+    #   A file, or a sp object, or both, with kriging predictions.
+    #
+    # check arguments ##########################################################
+    if (missing(geodata)) {
+      stop("<geodata> is a mandatory argument")
+    }
+    if (missing(model)) {
+      stop("<model> is a mandatory argument")
+    }
+    if (missing(pred.loc)) {
+      stop("<pred.loc> is a mandatory argument")
+    }
+    if (missing(covars)) {
+      stop("<covars> is a mandatory argument")
+    }
+    if (class(geodata) != "geodata") {
+      stop("<geodata> should be of class geodata")
+    }
+    if (any(class(model) != c("likGRF", "variomodel"))) {
+      stop("<model> should be of class likGRF and/or variomodel")
+    }
+    if (class(pred.loc) != "SpatialGridDataFrame") {
+      stop("<pred.loc> should be of class SpatialGridDataFrame")
+    }
+    if (class(covars) != "SpatialGridDataFrame") {
+      stop("<covars> should be of class SpatialGridDataFrame")
+    }
+    # prepare data 
+    if (simul.back) {
+      lambda0 <- model$lambda
+      geodata0 <- geodata
+      geodata$data <- geoR::BCtransform(geodata$data, model$lambda)$data
+      model$parameters.summary["lambda", 2] <- 1
+      model$lambda <- 1
+    }
+    # prepare covariates and prediction locations ##############################
+    covars   <- cbind(coordinates(pred.loc), covars@data)
+    gridded(pred.loc) <- FALSE
+    pred.loc <- coordinates(pred.loc)
+    covars <- as.geodata(covars, coords.col = c(1:2), data.col = NULL,
+                         covar.col = c(3:dim(covars)[2]))
+    # prepare trend data #######################################################
+    trend <- formula(paste("~", paste(colnames(geodata$covariate), 
+                                      collapse = " + ")))
+    trend.d  <- trend.spatial(trend, geodata = geodata)
+    trend.l  <- trend.spatial(trend, geodata = covars)
+    # if required, prepare prediction tiles ####################################
+    if (tile) {
+      pred    <- list()
+      tiles   <- round(dim(covars$covariate)[1] / n.tiles)
+      tiles.a <- seq(1, dim(covars$covariate)[1] - n.tiles, tiles)
+      tiles.b <- seq(tiles, dim(covars$covariate)[1], tiles)
+      if(length(tiles.a) == length(tiles.b)) {
+        tiles.b[length(tiles.b)] <- dim(covars$covariate)[1]
+      } else {
+        tiles.b[length(tiles.b)+1] <- dim(covars$covariate)[1]  
+      }
+      tiles <- data.frame(tiles.a, tiles.b)
+      for (i in 1:dim(tiles)[1]) { # split data
+        message(paste("processing tile number ", i, " of ", n.tiles, sep = ""))
+        # edit trend.l
+        a <- attributes(trend.l)
+        b <- trend.l[tiles[i, 1]:tiles[i, 2], ]
+        b_attr <- attributes(b)
+        b_attr$assign <- a$assign
+        b_attr$class  <- a$class
+        attributes(b) <- b_attr
+        trend.l.tile  <- b
+        # prepare krige.control
+        control <- krige.control(type.krige = type.krige, trend.d = trend.d,
+                                 trend.l = trend.l.tile, obj.model = model)
+        # make predictions
+        pred[[i]] <- krige.conv(geodata, krige = control, 
+                                locations = pred.loc[tiles[i, 1]:tiles[i, 2], ],
+                                ...)
+        # 
+        if (simul.back) {
+          cat(paste("krige.conv: back-transforming predictions using ",
+                    n.sim, " Gaussian simulations", sep = ""))
+          back <- geoR::backtransform.moments(lambda = lambda0, 
+                                              mean = pred[[i]][["predict"]],
+                                              variance = pred[[i]][["krige.var"]], 
+                                              n.sim = n.sim, 
+                                              simul.back = simul.back)
+          pred[[i]][["predict"]]   <- back$mean
+          pred[[i]][["krige.var"]] <- back$variance
+        }
+      }
+    }
+    else { # this section may not be ready!
+      covars   <- as.geodata(covars, coords.col = c(1:2),
+                             data.col = NULL, covar.col = c(3:dim(covars)[2]))
+      trend.d  <- trend.spatial(trend, geodata = geodata)
+      trend.l  <- trend.spatial(trend, geodata = covars)
+    }
+    # process output ###########################################################
+    if (tile) {
+      krige.pred   <- sapply(pred, function (X) {X$predict})
+      krige.pred   <- unlist(krige.pred)
+      krige.var    <- sapply(pred, function (X) {X$krige.var})
+      krige.var    <- unlist(krige.var)
+      beta.est     <- pred[[1]]$beta.est
+      distribution <- pred[[1]]$distribution
+      message      <- pred[[1]]$message
+      call         <- pred[[1]]$call
+      pred.attr    <- attributes(pred[[1]])
+      pred.attr$names <- c("x.coord", "y.coord", "krige.pred", 
+                           pred.attr$names[-1])
+      pred.attr$tiles <- tiles
+      pred <- list(x.coord = pred.loc[, 1], y.coord = pred.loc[, 2],
+                   krige.pred = krige.pred, krige.var = krige.var, 
+                   beta.est = beta.est, distribution = distribution, 
+                   message = message, call = call)
+      attributes(pred) <- pred.attr
+    }
+    # save prediction and return sp object
+    if (sp.out == TRUE && !missing(file)) {
+      sp.out <- data.frame(x.coord = pred[[1]], y.coord = pred[[2]],
+                           krige.pred = pred[[3]], krige.var = pred[[4]])
+      coordinates(sp.out) <- ~ x.coord + y.coord
+      gridded(sp.out) <- TRUE
+      save(pred, file = file)
+      # send confirmation message (usefull when processing large datasets)
+      if (!missing(email)) {
+        files <- list.files()
+        if (match(file, files, nomatch = FALSE)) {
+          message <- paste("The file ", file, " has been written to disk in ",
+                           Sys.time(), sep = "")
+        } else {
+          message <- paste("The process seems to have failed", sep = "")
+        }
+        sendmail(recipient = email, password = "rmail",
+                 message = message, subject = "Notification from R")
+      }
+      return (sp.out)
+    }
+    # only save predictions
+    if (sp.out == FALSE && !missing(file)) {
+      save(pred, file = file)
+      if (!missing(email)) {
+        files <- list.files()
+        if (match(file, files, nomatch = FALSE)) {
+          message <- paste("The file ", file, " has been written to disk in ",
+                           Sys.time(), sep = "")
+        } else {
+          message <- paste("The process seems to have failed", sep = "")
+        }
+        sendmail(recipient = email, password = "rmail",
+                 message = message, subject = "Notification from R")
+      }
+      message <- "done"
+      return (message)
+    }
+    # only return sp object
+    if (sp.out == TRUE && missing(file)) {
+      save(pred, file = file)
+    }
+    # only return predictions
+    else {
+      return (pred)
+    }
+  }
+
+# calculate cross-validation error statistics 
+cvStats <- 
+  function (obs, pred, pev, digits) {
+    # Calculate cross-validation error statistics
+    #
+    # Args:
+    #   obs:    Mandatory vector object with observed values (numeric or
+    #           integer).
+    #   pred:   Mandatory vector object with predicted values (numeric or 
+    #           integer).
+    #   pev:    Mandatory vector object with prediction error variance (numeric 
+    #           or integer).
+    #   digits: Integer indicating the number of decimal places to be used.
+    #    
+    # Returns:
+    #   Data frame containing cross-validation error statistics: mean error 
+    #   (standard deviation), mean absolute error (standard deviation), mean
+    #   squared error (standard deviation), root mean squared error (RMSE), 
+    #   normalized RMSE, scaled RMSE, and ratio of scatter (coefficient of 
+    #   determination).
+    #
+    # check arguments ##########################################################
+    if (missing(obs)) {
+      stop("<obs> is a mandatory argument")
+    }
+    if (missing(pred)) {
+      stop("<pred> is a mandatory argument")
+    }
+    if (missing(pev)) {
+      stop("<pev> is a mandatory argument")
+    }
+    if (!any(class(obs) == c("numeric", "integer"))) {
+      stop("<obs> should be of class numeric or integer")
+    }
+    if (!any(class(pred) == c("numeric", "integer"))) {
+      stop("<pred> should be of class numeric or integer")
+    }
+    if (!any(class(pev) == c("numeric", "integer"))) {
+      stop("<pev> should be of class numeric or integer")
+    }
+    if (length(unique(c(length(obs), length(pred), length(pev)))) > 1) {
+      stop("<obs>, <pred> and <pev> must have the same length")
+    }
+    # prepare data #############################################################
+    if (!missing(digits)) {
+      error  <- round(c(pred - obs), digits)
+    } else {
+      error  <- pred - obs
+    }
+    # calculate error statistics ###############################################
+    if (!missing(digits)) {
+      # mean error
+      me     <- round(mean(error), digits)
+      me.sd  <- round(sd(error), digits)
+      # mean absolute error
+      mae    <- round(mean(abs(error)), digits)
+      mae.sd <- round(sd(abs(error)), digits)
+      # mean squared error
+      mse    <- round(mean(error * error), digits)
+      mse.sd <- round(sd(error * error), digits)
+      # root mean squared error
+      rmse   <- round(sqrt(mse), digits)  
+    } else {
+      # mean error
+      me     <- mean(error)
+      me.sd  <- sd(error)
+      # mean absolute error
+      mae    <- mean(abs(error))
+      mae.sd <- sd(abs(error))
+      # mean squared error
+      mse    <- mean(error * error)
+      mse.sd <- sd(error * error)
+      # root mean squared error
+      rmse   <- sqrt(mse)
+    }
+    # normalized root mean squared error
+    nrmse  <- round(rmse / sd(obs), 2)
+    # scaled root mean square error
+    srmse  <- round(mean((error * error) / pev), 2) 
+    # ratio of scatter (coefficient of determination)
+    resid  <- obs - mean(obs)
+    r2     <- 1 - sum(error * error) / sum(resid * resid)
+    r2     <- r2 * 100
+    # output ###################################################################
+    res    <- data.frame(me, me.sd, mae, mae.sd,
+                         mse, mse.sd, rmse, nrmse, srmse, r2)
+    return (res)
+  }
+
 # Convert pdf figures to png
 # This is to reduce the size of the document submitted to the review process.
 # The published document is prepared with the high-quality pdf images.
